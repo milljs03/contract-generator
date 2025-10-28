@@ -1,6 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 // --- UPDATED THIS LINE ---
-import { getFirestore, collection, doc, addDoc, getDoc, setDoc, query, onSnapshot, collectionGroup, getDocs, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { getFirestore, collection, doc, addDoc, getDoc, setDoc, query, onSnapshot, collectionGroup, getDocs, where, deleteDoc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js"; // <-- Added updateDoc
 import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
 // TODO: Get this config from your new project's "Project settings"
@@ -21,9 +21,10 @@ const auth = getAuth(app);
 const googleProvider = new GoogleAuthProvider();
 
 // --- UPDATED THIS BLOCK ---
-export { 
+export {
   db, auth, googleProvider,
   collection, doc, addDoc, getDoc, setDoc, query, onSnapshot, collectionGroup,
-  getDocs, where, // <-- Added missing exports
-  onAuthStateChanged, signInWithPopup, signOut 
+  getDocs, where, deleteDoc, updateDoc, // <-- Added updateDoc export
+  onAuthStateChanged, signInWithPopup, signOut
 };
+

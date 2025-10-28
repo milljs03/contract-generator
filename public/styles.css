@@ -159,6 +159,7 @@ body {
 }
 .option-card-totals {
     display: flex;
+    justify-content: flex-end; /* Align totals to the right */
     gap: 1rem;
     text-align: right;
     font-size: 0.875rem;
@@ -181,6 +182,8 @@ body {
     width: 100%;
     font-size: 0.875rem;
     margin-top: 1rem;
+    border-collapse: separate; /* Allow spacing */
+    border-spacing: 0 4px; /* Vertical spacing between rows */
 }
 .pricing-table th {
     text-align: left;
@@ -191,7 +194,7 @@ body {
 }
 .pricing-table td {
     padding: 0.25rem;
-    vertical-align: top;
+    vertical-align: middle; /* Align vertically centered */
 }
 .pricing-table .form-input {
     font-size: 0.875rem;
@@ -204,6 +207,7 @@ body {
     padding: 0.5rem;
     font-weight: 600;
     color: #1F2937; /* gray-800 */
+    border-radius: 0.25rem; /* Slightly rounded header rows */
 }
 .delete-row-btn {
     background: none;
@@ -275,9 +279,10 @@ body {
 
 /* --- Contract List Item --- */
 .contract-list-item {
-    display: flex;
-    justify-content: space-between;
+    display: grid; /* Use grid for better layout */
+    grid-template-columns: 1fr auto; /* Details take up space, actions fit content */
     align-items: center;
+    gap: 1rem; /* Space between details and actions */
     padding: 1rem 1.5rem;
     border: 1px solid #E5E7EB; /* gray-200 */
     border-radius: 0.5rem;
@@ -287,12 +292,24 @@ body {
     box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
     border-color: #D1D5DB; /* gray-300 */
 }
+.contract-details { /* Container for left side info */
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem; /* Small gap between text lines */
+}
+.contract-actions { /* Container for right side buttons/badge */
+    display: flex;
+    align-items: center;
+    gap: 0.5rem; /* Space between buttons */
+}
+
 .contract-status-badge {
     padding: 0.125rem 0.625rem;
     border-radius: 99px;
     font-size: 0.75rem;
     font-weight: 500;
     text-transform: capitalize;
+    white-space: nowrap; /* Prevent badge text wrapping */
 }
 .status-draft { background-color: #FEF3C7; color: #92400E; } /* amber-200, amber-800 */
 .status-sent { background-color: #DBEAFE; color: #1E40AF; } /* blue-200, blue-800 */

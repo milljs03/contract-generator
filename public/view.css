@@ -57,6 +57,19 @@ body {
     border-color: #2563EB; /* blue-600 */
     box-shadow: 0 0 0 2px #BFDBFE; /* blue-200 */
 }
+.form-checkbox { /* Updated for consistency */
+    width: 1rem;
+    height: 1rem;
+    border-radius: 0.25rem;
+    border-color: #D1D5DB; /* gray-300 */
+    color: #2563EB; /* blue-600 */
+    cursor: pointer;
+}
+.form-checkbox:focus {
+    outline: none;
+    ring: 2px;
+    ring-color: #BFDBFE; /* blue-200 */
+}
 
 .form-radio {
     width: 1.25rem;
@@ -115,38 +128,37 @@ body {
     color: #4B5563; /* gray-600 */
 }
 .view-option-totals {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-    text-align: right;
-    font-size: 0.875rem;
-    color: #374151; /* gray-700 */
-    /* Totals are now in the table footer, so this is less prominent */
-    display: none; 
+    display: none; /* Totals are in the table footer */
 }
-.view-option-totals strong {
-    font-size: 1rem;
-    font-weight: 700;
-    color: #1F2937; /* gray-800 */
-}
+
 .view-option-body {
     padding: 0; /* Remove padding to let table be full-width */
 }
 
-/* --- New "Google Sheets" Table Style --- */
+/* --- "Google Sheets" Table Style --- */
 .pricing-table-view {
     width: 100%;
     font-size: 0.875rem;
-    border-collapse: collapse; /* Gives it the sheet feel */
+    border-collapse: collapse;
 }
 .pricing-table-view th {
     text-align: left;
-    padding: 0.75rem; /* More padding */
+    padding: 0.75rem;
     color: #4B5563; /* gray-600 */
-    font-weight: 600; /* Bolder */
+    font-weight: 600;
     border-bottom: 2px solid #D1D5DB; /* gray-300 */
     background-color: #F9FAFB; /* gray-50 */
 }
+/* Align Qty, MRC, NRC headers/columns to the right */
+.pricing-table-view th:nth-child(2),
+.pricing-table-view td:nth-child(2), /* Qty column */
+.pricing-table-view th:nth-child(3),
+.pricing-table-view td:nth-child(3), /* MRC column */
+.pricing-table-view th:nth-child(4),
+.pricing-table-view td:nth-child(4) { /* NRC column */
+    text-align: right;
+}
+
 .pricing-table-view td {
     padding: 0.75rem;
     border-bottom: 1px solid #E5E7EB; /* gray-200 */
@@ -161,7 +173,7 @@ body {
     background-color: #F9FAFB; /* gray-50 */
 }
 
-/* Bold Subtotals (Header Row) */
+/* Header Row (Subtotals in admin table) */
 .pricing-table-view .table-header-row td {
     background-color: #F3F4F6; /* gray-100 */
     font-weight: 700;
@@ -171,17 +183,114 @@ body {
     border-bottom: 1px solid #E5E7EB; /* gray-200 */
 }
 
-/* Total Row Footer */
-.pricing-table-view tfoot .table-total-row td {
-    font-weight: 700;
+/* Subtotal Row Footer */
+.pricing-table-view tfoot .table-subtotal-row td {
+    font-weight: 600;
     font-size: 0.875rem;
-    color: #111827; /* gray-900 */
-    text-align: right;
-    padding: 0.75rem 0.75rem;
+    color: #374151; /* gray-700 */
+    padding: 0.6rem 0.75rem;
     border-top: 2px solid #D1D5DB; /* gray-300 */
     background-color: #F9FAFB; /* gray-50 */
 }
-.pricing-table-view tfoot .table-total-row td:first-child {
+/* Align "Totals" text to the left */
+.pricing-table-view tfoot .table-subtotal-row td:first-child {
     text-align: left;
-    font-size: 1rem; /* Make "Total" a bit bigger */
 }
+/* Align the numeric subtotal cells (3rd and 4th) to the right */
+.pricing-table-view tfoot .table-subtotal-row td:nth-child(2), /* Corresponds to MRC */
+.pricing-table-view tfoot .table-subtotal-row td:nth-child(3) { /* Corresponds to NRC */
+    text-align: right;
+}
+
+/* --- Signature Styles --- */
+#signature-pad {
+    cursor: crosshair; /* Indicate draw area */
+}
+/* Cursive font style */
+.typed-signature-font {
+    font-family: 'Dancing Script', cursive; /* Use the imported Google Font */
+    font-weight: 700; /* Use the bold weight if available */
+}
+/* Display final signature image */
+#final-signature-display img {
+    max-height: 80px; /* Limit height of displayed signature */
+    border: 1px solid #eee;
+    margin-top: 5px;
+}
+/* Display final typed signature */
+#final-signature-display .typed-signature-font {
+    font-size: 1.75rem; /* Make it a bit smaller than the input display */
+}
+
+/* --- Terms of Service Dropdown Styles --- */
+.terms-details {
+    /* Basic container styling */
+    border: 1px solid #e5e7eb; /* gray-200 */
+    border-radius: 0.375rem; /* rounded-md */
+    background-color: #f9fafb; /* gray-50 */
+}
+.terms-summary {
+    /* Style the clickable header */
+    padding: 0.75rem 1rem;
+    font-weight: 600;
+    color: #1f2937; /* gray-800 */
+    cursor: pointer;
+    list-style: none; /* Remove default marker */
+    position: relative;
+    user-select: none; /* Prevent text selection */
+}
+.terms-summary::-webkit-details-marker {
+    display: none; /* Hide default marker in Chrome/Safari */
+}
+.terms-summary::marker {
+    display: none; /* Hide default marker in Firefox */
+}
+/* Add a custom arrow */
+.terms-summary::after {
+    content: '▼'; /* Down arrow */
+    position: absolute;
+    right: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.75rem;
+    color: #6b7280; /* gray-500 */
+    transition: transform 0.2s ease-in-out;
+}
+/* Rotate arrow when open */
+.terms-details[open] > .terms-summary::after {
+    transform: translateY(-50%) rotate(180deg); /* Up arrow */
+}
+
+.terms-content {
+    /* Style the content area */
+    padding: 1rem 1.5rem;
+    border-top: 1px solid #e5e7eb; /* gray-200 */
+    color: #374151; /* gray-700 */
+    font-size: 0.875rem; /* text-sm */
+    line-height: 1.6;
+}
+.terms-content h3 {
+    font-size: 1.125rem; /* text-lg */
+    font-weight: 600; /* font-semibold */
+    color: #111827; /* gray-900 */
+    margin-bottom: 0.75rem;
+}
+.terms-content h4 {
+    font-size: 1rem; /* text-base */
+    font-weight: 600; /* font-semibold */
+    color: #111827; /* gray-900 */
+    margin-top: 1.25rem;
+    margin-bottom: 0.5rem;
+}
+.terms-content ol {
+    margin-left: 1.25rem; /* Indent lists */
+    list-style-type: decimal; /* Ensure numbered lists */
+    padding-left: 1rem;
+}
+.terms-content ol li {
+    margin-bottom: 0.5rem;
+}
+.terms-content p {
+    margin-bottom: 0.75rem;
+}
+

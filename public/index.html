@@ -23,7 +23,7 @@
 
     <!-- Main App Screen (Hidden by default) -->
     <div id="app-screen" class="hidden">
-        
+
         <!-- Header -->
         <header class="bg-white shadow-md">
             <nav class="container mx-auto px-6 py-4 flex justify-between items-center">
@@ -37,7 +37,7 @@
 
         <!-- Main Content -->
         <main class="container mx-auto p-6">
-            
+
             <!-- Contract List -->
             <div id="contract-list-container" class="bg-white p-6 rounded-lg shadow-lg">
                 <div class="flex justify-between items-center mb-4">
@@ -67,7 +67,7 @@
             <!-- Modal Body / Form -->
             <div class="modal-body">
                 <form id="contract-form" class="space-y-6">
-                    
+
                     <!-- Section: Customer Info -->
                     <div class="form-section">
                         <h3 class="form-section-title">Customer Info</h3>
@@ -116,6 +116,20 @@
                         </button>
                     </div>
 
+                    <!-- START: Installation Schedule Section -->
+                    <div class="form-section">
+                        <h3 class="form-section-title">Installation Schedule</h3>
+                        <div>
+                            <label for="installationSchedule" class="form-label">Describe the estimated timeline and dependencies:</label>
+                            <textarea id="installationSchedule" class="form-input h-24" placeholder="e.g., Installation timelines vary based on location, required permits... CFN estimates a maximum timeframe of up to 10 weeks..."></textarea>
+                            <p class="text-xs text-gray-500 mt-1">
+                                The following text will be automatically appended: <br>
+                                "Special installations, ad hoc requests, or delays caused by the Customer's vendor may extend timelines and potentially incur additional costs."
+                            </p>
+                        </div>
+                    </div>
+                    <!-- END: Installation Schedule Section -->
+
                     <!-- Section: Contract Options -->
                     <div class="form-section">
                         <h3 class="form-section-title">Contract Options</h3>
@@ -132,7 +146,7 @@
 
             <!-- Modal Footer -->
             <div class="modal-footer">
-                <button id="cancel-form-btn" type="button" class_name="btn btn-secondary">Cancel</button>
+                <button id="cancel-form-btn" type="button" class="btn btn-secondary">Cancel</button>
                 <button id="save-contract-btn" type="button" class="btn btn-primary">
                     <span>Save Contract as Draft</span>
                     <svg id="save-spinner" class="animate-spin -mr-1 ml-3 h-5 w-5 text-white hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -153,3 +167,4 @@
     <script type="module" src="app.js"></script>
 </body>
 </html>
+

@@ -1,7 +1,8 @@
-import { 
+import {
   db, auth, googleProvider,
   collection, doc, addDoc, getDoc, setDoc, query, onSnapshot, collectionGroup,
-  onAuthStateChanged, signInWithPopup, signOut 
+  onAuthStateChanged, signInWithPopup, signOut,
+  deleteDoc, getDocs // <-- Import deleteDoc and getDocs
 } from './firebase.js';
 
 // DOM Elements
@@ -27,6 +28,7 @@ const billingSameAsService = document.getElementById('billingSameAsService');
 const billingAddressContainer = document.getElementById('billingAddressContainer');
 const addSiteBtn = document.getElementById('add-site-btn');
 const multiSiteContainer = document.getElementById('multi-site-container');
+const installationScheduleInput = document.getElementById('installationSchedule');
 const addOptionBtn = document.getElementById('add-option-btn');
 const optionsContainer = document.getElementById('options-container');
 
@@ -37,6 +39,9 @@ const toastMessage = document.getElementById('toast-message');
 // Global state
 let currentUserId = null;
 let currentEditingContractId = null;
+
+// Fixed text for installation schedule
+const installationScheduleSuffix = "Special installations, ad hoc requests, or delays caused by the Customer's vendor may extend timelines and potentially incur additional costs.";
 
 // --- AUTHENTICATION ---
 onAuthStateChanged(auth, user => {
@@ -75,57 +80,118 @@ function initApp() {
     openCreateFormBtn.addEventListener('click', showCreateForm);
     closeModalBtn.addEventListener('click', closeModal);
     cancelModalBtn.addEventListener('click', closeModal);
-    
+
     // Form interactivity
     billingSameAsService.addEventListener('change', toggleBillingAddress);
     addSiteBtn.addEventListener('click', addSite);
     addOptionBtn.addEventListener('click', addOption);
     saveContractBtn.addEventListener('click', saveContract);
-    
+
     // Use event delegation for dynamic elements
     modal.addEventListener('click', handleModalClick);
     modal.addEventListener('input', handleModalInput);
-    contractListContainer.addEventListener('click', handleContractListClick); // <-- ADDED THIS
+    contractListContainer.addEventListener('click', handleContractListClick);
 }
 
 // --- CONTRACT LISTING ---
-function loadContracts() {
-    const q = query(collection(db, 'contracts')); // Later, you can add , where('adminId', '==', currentUserId)
+// Helper function to calculate expiration date
+function calculateExpirationDate(signedAtISO, termMonths) {
+    if (!signedAtISO || !termMonths) return 'N/A';
+    try {
+        const signedDate = new Date(signedAtISO);
+        // Add months, handle year rollovers correctly
+        signedDate.setMonth(signedDate.getMonth() + termMonths);
+        return signedDate.toLocaleDateString(); // Format as MM/DD/YYYY (or locale default)
+    } catch (e) {
+        console.error("Error calculating expiration date:", e);
+        return 'Invalid Date';
+    }
+}
 
-    onSnapshot(q, (snapshot) => {
+async function loadContracts() {
+    const q = query(collection(db, 'contracts')); // Later, add orderBy, etc.
+
+    onSnapshot(q, async (snapshot) => { // Make the callback async
         if (snapshot.empty) {
             contractListContainer.innerHTML = '<p class="text-gray-500">No contracts found. Create one to get started!</p>';
             return;
         }
-        
-        contractListContainer.innerHTML = '';
-        snapshot.forEach(doc => {
-            const contract = doc.data();
-            const contractEl = document.createElement('div');
-            contractEl.className = 'contract-list-item';
-            
-            // --- UPDATED THIS BLOCK ---
-            contractEl.innerHTML = `
-                <div>
-                    <h3 class="font-semibold text-gray-900">${contract.businessName}</h3>
-                    <p class="text-sm text-gray-500">Service Address: ${contract.serviceAddress}</p>
-                </div>
-                <div class="flex items-center space-x-2">
-                    <span class="contract-status-badge status-${contract.status}">${contract.status}</span>
-                    <button class="btn btn-secondary-outline text-sm edit-btn" data-id="${doc.id}">Edit</button>
-                    <button class="btn btn-secondary-outline text-sm preview-btn" data-share-id="${contract.shareableId}">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-1"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                        Preview
-                    </button>
-                    <button class="btn btn-secondary-outline text-sm copy-link-btn" data-share-id="${contract.shareableId}">Copy Link</button>
+
+        contractListContainer.innerHTML = '<p class="text-gray-500">Loading contract details...</p>'; // Temp message
+
+        // Use Promise.all to fetch option data concurrently if needed
+        const contractPromises = snapshot.docs.map(async (docSnap) => {
+            const contract = docSnap.data();
+            const contractId = docSnap.id;
+            let optionTitle = 'N/A';
+            let signedDateStr = 'N/A';
+            let expirationDateStr = 'N/A';
+            let optionTerm = 0; // Store term for calculation
+
+            // If signed, fetch the selected option details
+            if ((contract.status === 'signed' || contract.status === 'locked') && contract.selectedOptionId) {
+                try {
+                    const optionRef = doc(db, 'contracts', contractId, 'options', contract.selectedOptionId);
+                    const optionSnap = await getDoc(optionRef);
+                    if (optionSnap.exists()) {
+                        const optionData = optionSnap.data();
+                        optionTitle = optionData.title || 'Unknown Option';
+                        optionTerm = optionData.termMonths || 0;
+                    }
+                } catch (error) {
+                    console.error(`Error fetching option ${contract.selectedOptionId} for contract ${contractId}:`, error);
+                    optionTitle = 'Error loading option';
+                }
+            }
+
+            // Format dates if available
+            if (contract.signature && contract.signature.signedAt) {
+                 try {
+                     signedDateStr = new Date(contract.signature.signedAt).toLocaleDateString();
+                     // Calculate expiration only if we have a term and signed date
+                     if (optionTerm > 0) {
+                         expirationDateStr = calculateExpirationDate(contract.signature.signedAt, optionTerm);
+                     }
+                 } catch (e) {
+                     console.error("Error formatting date:", e);
+                     signedDateStr = 'Invalid Date';
+                 }
+            }
+
+
+            // Build HTML for this contract
+            return `
+                <div class="contract-list-item">
+                    <div class="contract-details">
+                        <h3 class="font-semibold text-gray-900">${contract.businessName}</h3>
+                        <p class="text-sm text-gray-500">Service Addr: ${contract.serviceAddress}</p>
+                        ${(contract.status === 'signed' || contract.status === 'locked') ? `
+                        <p class="text-xs text-gray-500 mt-1">Option: <span class="font-medium text-gray-700">${optionTitle}</span></p>
+                        <p class="text-xs text-gray-500">Signed: <span class="font-medium text-gray-700">${signedDateStr}</span> | Expires: <span class="font-medium text-gray-700">${expirationDateStr}</span></p>
+                        ` : ''}
+                    </div>
+                    <div class="contract-actions">
+                        <span class="contract-status-badge status-${contract.status}">${contract.status}</span>
+                        <button class="btn btn-secondary-outline text-sm edit-btn" data-id="${contractId}">Edit</button>
+                        <button class="btn btn-secondary-outline text-sm preview-btn" data-share-id="${contract.shareableId}">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-1"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                            Preview
+                        </button>
+                        <button class="btn btn-secondary-outline text-sm copy-link-btn" data-share-id="${contract.shareableId}">Copy Link</button>
+                        <!-- ADDED DELETE BUTTON -->
+                        <button class="btn btn-danger-outline text-sm delete-btn" data-id="${contractId}" data-name="${contract.businessName}">Delete</button>
+                    </div>
                 </div>
             `;
-            // --- END OF UPDATE ---
-            
-            contractListContainer.appendChild(contractEl);
         });
+
+        // Wait for all promises to resolve and then update the UI
+        const contractHtmlElements = await Promise.all(contractPromises);
+        contractListContainer.innerHTML = contractHtmlElements.join('');
+
     });
 }
+
 
 // --- MODAL & FORM CONTROLS ---
 
@@ -134,12 +200,13 @@ function showCreateForm() {
     contractForm.reset();
     optionsContainer.innerHTML = '';
     multiSiteContainer.innerHTML = '';
+    installationScheduleInput.value = '';
     billingAddressContainer.classList.add('hidden');
     billingSameAsService.checked = true;
-    
+
     // Add one default option
-    addOption(); 
-    
+    addOption();
+
     contractFormTitle.textContent = 'Create New Contract';
     saveContractBtn.querySelector('span').textContent = 'Save Contract as Draft';
     modal.classList.remove('hidden');
@@ -191,7 +258,7 @@ function addOption() {
                     <input type="number" class="form-input option-term" value="36">
                 </div>
             </div>
-            
+
             <!-- Pricing Table -->
             <table class="pricing-table">
                 <thead>
@@ -207,7 +274,7 @@ function addOption() {
                     <!-- JS adds rows here -->
                 </tbody>
             </table>
-            
+
             <!-- Add Row Buttons -->
             <div class="flex space-x-2 mt-2">
                 <button type="button" class="btn btn-secondary-outline add-item-btn" data-target-table="table-body-${optionId}" data-type="item">
@@ -217,7 +284,7 @@ function addOption() {
                     + Add Header
                 </button>
             </div>
-            
+
             <!-- Totals Display -->
             <div class="option-card-totals mt-4">
                 <div>Total MRC: <span class="total-mrc">$0.00</span></div>
@@ -226,7 +293,7 @@ function addOption() {
         </div>
     `;
     optionsContainer.appendChild(optionEl);
-    
+
     // Add a default item row
     addTableRow(`table-body-${optionId}`, 'item');
 }
@@ -238,7 +305,7 @@ function addTableRow(tableBodyId, type) {
     const rowId = crypto.randomUUID();
     const row = document.createElement('tr');
     row.id = `row-${rowId}`;
-    
+
     if (type === 'item') {
         row.className = 'line-item-row';
         row.dataset.type = 'item';
@@ -279,12 +346,12 @@ function handleModalClick(e) {
         const targetId = e.target.closest('.delete-btn').dataset.target;
         deleteElement(targetId);
     }
-    
+
     if (e.target.closest('.delete-row-btn')) {
         const targetId = e.target.closest('.delete-row-btn').dataset.target;
         deleteElement(targetId);
     }
-    
+
     // Add table row buttons (item or header)
     if (e.target.closest('.add-item-btn')) {
         const btn = e.target.closest('.add-item-btn');
@@ -294,14 +361,14 @@ function handleModalClick(e) {
     }
 }
 
-// --- NEW FUNCTION ---
 // Handles clicks on the main contract list
-function handleContractListClick(e) {
+async function handleContractListClick(e) { // <-- Make async
     const btn = e.target.closest('button');
     if (!btn) return; // Exit if click wasn't on a button
 
     const shareId = btn.dataset.shareId;
     const contractId = btn.dataset.id;
+    const contractName = btn.dataset.name; // Get name for confirmation
 
     // Handle Preview Button
     if (btn.classList.contains('preview-btn')) {
@@ -329,13 +396,40 @@ function handleContractListClick(e) {
     // Handle Edit Button
     if (btn.classList.contains('edit-btn')) {
         // TODO: Implement edit functionality
-        // This would involve:
-        // 1. Setting currentEditingContractId = contractId
-        // 2. Fetching the contract doc AND its 'options' sub-collection
-        // 3. Populating the modal form with all that data
-        // 4. Opening the modal
         showToast('Edit functionality is not yet implemented.', 'error');
     }
+
+    // --- ADDED DELETE LOGIC ---
+    if (btn.classList.contains('delete-btn')) {
+        if (!contractId) return;
+
+        // Use confirm() for simplicity, replace with custom modal later if desired
+        if (confirm(`Are you sure you want to permanently delete the contract for "${contractName}"? This action cannot be undone.`)) {
+            btn.disabled = true; // Disable button during deletion
+            btn.textContent = 'Deleting...';
+            try {
+                // 1. Delete all options in the subcollection first
+                const optionsRef = collection(db, 'contracts', contractId, 'options');
+                const optionsSnapshot = await getDocs(optionsRef);
+                const deletePromises = optionsSnapshot.docs.map(optionDoc => deleteDoc(optionDoc.ref));
+                await Promise.all(deletePromises);
+                console.log(`Deleted ${optionsSnapshot.size} options for contract ${contractId}`);
+
+                // 2. Delete the main contract document
+                await deleteDoc(doc(db, 'contracts', contractId));
+                console.log(`Deleted contract ${contractId}`);
+                showToast('Contract deleted successfully!', 'success');
+                // The onSnapshot listener will automatically refresh the list
+
+            } catch (error) {
+                console.error("Error deleting contract:", error);
+                showToast(`Error deleting contract: ${error.message}`, 'error');
+                btn.disabled = false; // Re-enable button on error
+                btn.textContent = 'Delete';
+            }
+        }
+    }
+    // --- END OF DELETE LOGIC ---
 }
 
 
@@ -345,14 +439,14 @@ function handleModalInput(e) {
         const optionCard = e.target.closest('.option-card');
         calculateTotals(optionCard);
     }
-    
+
     // Update option card title as user types
     if (e.target.classList.contains('option-title')) {
         const optionCard = e.target.closest('.option-card');
         const title = e.target.value.trim() || 'New Option';
         optionCard.querySelector('.option-card-title').textContent = title;
     }
-    
+
     // Auto-format currency
     if (e.target.classList.contains('item-mrc') || e.target.classList.contains('item-nrc')) {
         e.target.value = formatCurrency(e.target.value);
@@ -384,7 +478,7 @@ function calculateTotals(optionCard) {
         const qty = parseInt(row.querySelector('.item-qty')?.value) || 1;
         const mrc = parseCurrency(row.querySelector('.item-mrc')?.value);
         const nrc = parseCurrency(row.querySelector('.item-nrc')?.value);
-        
+
         totalMRC += qty * mrc;
         totalNRC += qty * nrc;
     });
@@ -401,37 +495,40 @@ async function saveContract() {
 
     try {
         // 1. Gather Global Contract Data
+        const userInputSchedule = installationScheduleInput.value.trim();
+        const fullInstallationSchedule = userInputSchedule ? `${userInputSchedule} ${installationScheduleSuffix}` : installationScheduleSuffix;
+
         const contractData = {
             businessName: document.getElementById('businessName').value,
             agentBusinessName: document.getElementById('agentBusinessName').value,
             customerEmail: document.getElementById('customerEmail').value,
             serviceAddress: document.getElementById('serviceAddress').value,
             isBillingSameAsService: billingSameAsService.checked,
-            billingAddress: billingSameAsService.checked 
-                ? document.getElementById('serviceAddress').value 
+            billingAddress: billingSameAsService.checked
+                ? document.getElementById('serviceAddress').value
                 : document.getElementById('billingAddress').value,
+            installationScheduleText: fullInstallationSchedule,
             status: 'draft',
             shareableId: crypto.randomUUID().substring(0, 8),
             createdAt: new Date().toISOString(),
             adminId: currentUserId,
             multiSiteAddresses: [
-                // Start with the main service address
                 document.getElementById('serviceAddress').value,
-                // Add all others
-                ...Array.from(document.querySelectorAll('.site-address-input')).map(input => input.value).filter(Boolean)
+                ...Array.from(document.querySelectorAll('.site-address-input'))
+                         .map(input => input.value.trim())
+                         .filter(Boolean)
             ]
         };
 
-        // 2. Create the main contract document
-        // TODO: Add logic here for 'update' vs 'add'
+        // 2. Create the main contract document in Firestore
+        // TODO: Add logic here to UPDATE if currentEditingContractId exists
         const contractDocRef = await addDoc(collection(db, 'contracts'), contractData);
-        
-        // 3. Gather and Save Options Data
-        const optionsToSave = [];
+
+        // 3. Gather and Save Options Data (as sub-collection documents)
         const optionCards = document.querySelectorAll('.option-card');
-        
+
         for (const card of optionCards) {
-            // Gather line items for this option
+            // Gather line items for this specific option
             const lineItems = [];
             card.querySelectorAll('tbody tr').forEach(row => {
                 const type = row.dataset.type;
@@ -451,16 +548,16 @@ async function saveContract() {
                 }
             });
 
-            // Build the option object
+            // Build the option data object
             const optionData = {
                 title: card.querySelector('.option-title').value,
                 termMonths: parseInt(card.querySelector('.option-term').value) || 36,
                 totalMRC: parseCurrency(card.querySelector('.total-mrc').textContent),
                 totalNRC: parseCurrency(card.querySelector('.total-nrc').textContent),
-                lineItems: lineItems // Save the flexible array
+                lineItems: lineItems // Save the array of items/headers
             };
-            
-            // Save this option to the 'options' sub-collection
+
+            // Save this option data as a new document in the 'options' sub-collection
             await addDoc(collection(db, 'contracts', contractDocRef.id, 'options'), optionData);
         }
 
@@ -481,11 +578,11 @@ async function saveContract() {
 function showToast(message, type = 'success') {
     toastMessage.textContent = message;
     toast.className = 'toast-notification'; // Reset classes
-    
+
     if (type === 'error') {
         toast.classList.add('error');
     }
-    
+
     toast.classList.add('show');
     setTimeout(() => {
         toast.classList.remove('show');
