@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contract Generator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="bg-gray-100 font-inter">
+
+    <!-- Auth Screen -->
+    <div id="auth-screen" class="min-h-screen flex items-center justify-center">
+        <div class="bg-white p-8 rounded-lg shadow-md text-center">
+            <h1 class="text-2xl font-bold mb-4">NPTech Contract Generator</h1>
+            <button id="sign-in-btn" class="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700">
+                Sign in with Google
+            </button>
+            <p id="auth-error" class="text-red-500 mt-4"></p>
+        </div>
+    </div>
+
+    <!-- Main App Screen (Hidden by default) -->
+    <div id="app-screen" class="hidden">
+        
+        <!-- Header -->
+        <header class="bg-white shadow-md">
+            <nav class="container mx-auto px-6 py-4 flex justify-between items-center">
+                <h1 class="text-xl font-bold text-gray-800">Contract Dashboard</h1>
+                <div class="flex items-center space-x-4">
+                    <span id="user-email" class="text-sm text-gray-600"></span>
+                    <button id="sign-out-btn" class="text-sm text-blue-600 hover:underline">Sign Out</button>
+                </div>
+            </nav>
+        </header>
+
+        <!-- Main Content -->
+        <main class="container mx-auto p-6">
+            
+            <!-- Contract List -->
+            <div id="contract-list-container" class="bg-white p-6 rounded-lg shadow-lg">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-semibold">Your Contracts</h2>
+                    <button id="open-create-form-btn" class="btn btn-primary">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                        <span>Create New Contract</span>
+                    </button>
+                </div>
+                <div id="contract-list" class="space-y-3">
+                    <p class="text-gray-500">Loading contracts...</p>
+                    <!-- Contract list items will be injected here -->
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Contract Form Modal -->
+    <div id="contract-form-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <!-- Modal Header -->
+            <div class="modal-header">
+                <h2 id="contract-form-title" class="text-2xl font-bold">Create New Contract</h2>
+                <button id="close-form-btn" class="modal-close-btn">&times;</button>
+            </div>
+
+            <!-- Modal Body / Form -->
+            <div class="modal-body">
+                <form id="contract-form" class="space-y-6">
+                    
+                    <!-- Section: Customer Info -->
+                    <div class="form-section">
+                        <h3 class="form-section-title">Customer Info</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label for="businessName" class="form-label">Business Name</label>
+                                <input id="businessName" type="text" class="form-input" required>
+                            </div>
+                            <div>
+                                <label for="agentBusinessName" class="form-label">On Behalf Of (Agent Business)</label>
+                                <input id="agentBusinessName" type="text" class="form-input" placeholder="(Optional)">
+                            </div>
+                            <div>
+                                <label for="customerEmail" class="form-label">Customer Email (for signing)</label>
+                                <input id="customerEmail" type="email" class="form-input" placeholder="customer@example.com" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section: Address Info -->
+                    <div class="form-section">
+                        <h3 class="form-section-title">Address Info</h3>
+                        <div>
+                            <label for="serviceAddress" class="form-label">Service Address (Site 1)</label>
+                            <input id="serviceAddress" type="text" class="form-input" required>
+                        </div>
+                        <div class="mt-4">
+                            <input id="billingSameAsService" type="checkbox" class="form-checkbox" checked>
+                            <label for="billingSameAsService" class="ml-2 text-sm text-gray-700">Billing address is the same as service address</label>
+                        </div>
+                        <div id="billingAddressContainer" class="mt-4 hidden">
+                            <label for="billingAddress" class="form-label">Billing Address</label>
+                            <input id="billingAddress" type="text" class="form-input">
+                        </div>
+                    </div>
+
+                    <!-- Section: Multi-Site -->
+                    <div class="form-section">
+                        <h3 class="form-section-title">Additional Service Locations (Multi-Site)</h3>
+                        <div id="multi-site-container" class="space-y-2">
+                            <!-- JS adds new site inputs here -->
+                        </div>
+                        <button id="add-site-btn" type="button" class="btn btn-secondary-outline mt-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                            <span>Add Site</span>
+                        </button>
+                    </div>
+
+                    <!-- Section: Contract Options -->
+                    <div class="form-section">
+                        <h3 class="form-section-title">Contract Options</h3>
+                        <div id="options-container" class="space-y-6">
+                            <!-- JS adds new "Option" cards here -->
+                        </div>
+                        <button id="add-option-btn" type="button" class="btn-dashed w-full mt-4">
+                            + Add New Option
+                        </button>
+                    </div>
+
+                </form>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="modal-footer">
+                <button id="cancel-form-btn" type="button" class_name="btn btn-secondary">Cancel</button>
+                <button id="save-contract-btn" type="button" class="btn btn-primary">
+                    <span>Save Contract as Draft</span>
+                    <svg id="save-spinner" class="animate-spin -mr-1 ml-3 h-5 w-5 text-white hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast-notification">
+        <span id="toast-message"></span>
+    </div>
+
+    <script type="module" src="firebase.js"></script>
+    <script type="module" src="app.js"></script>
+</body>
+</html>
