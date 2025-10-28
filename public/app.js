@@ -2,7 +2,7 @@ import {
   db, auth, googleProvider,
   collection, doc, addDoc, getDoc, setDoc, query, onSnapshot, collectionGroup,
   onAuthStateChanged, signInWithPopup, signOut,
-  deleteDoc, getDocs // <-- Import deleteDoc and getDocs
+  deleteDoc, getDocs, updateDoc // <-- Import updateDoc
 } from './firebase.js';
 
 // DOM Elements
@@ -24,8 +24,13 @@ const contractForm = document.getElementById('contract-form');
 const contractFormTitle = document.getElementById('contract-form-title');
 
 // Form Fields
+const businessNameInput = document.getElementById('businessName');
+const agentBusinessNameInput = document.getElementById('agentBusinessName');
+const customerEmailInput = document.getElementById('customerEmail');
+const serviceAddressInput = document.getElementById('serviceAddress');
 const billingSameAsService = document.getElementById('billingSameAsService');
 const billingAddressContainer = document.getElementById('billingAddressContainer');
+const billingAddressInput = document.getElementById('billingAddress');
 const addSiteBtn = document.getElementById('add-site-btn');
 const multiSiteContainer = document.getElementById('multi-site-container');
 const installationScheduleInput = document.getElementById('installationSchedule');
@@ -38,10 +43,10 @@ const toastMessage = document.getElementById('toast-message');
 
 // Global state
 let currentUserId = null;
-let currentEditingContractId = null;
+let currentEditingContractId = null; // Used to track if we are editing
 
 // Fixed text for installation schedule
-const installationScheduleSuffix = "Special installations, ad hoc requests, or delays caused by the Customer's vendor may extend timelines and potentially incur additional costs.";
+const installationScheduleSuffix = " Special installations, ad hoc requests, or delays caused by the Customer's vendor may extend timelines and potentially incur additional costs.";
 
 // --- AUTHENTICATION ---
 onAuthStateChanged(auth, user => {
@@ -158,7 +163,6 @@ async function loadContracts() {
                  }
             }
 
-
             // Build HTML for this contract
             return `
                 <div class="contract-list-item">
@@ -178,7 +182,6 @@ async function loadContracts() {
                             Preview
                         </button>
                         <button class="btn btn-secondary-outline text-sm copy-link-btn" data-share-id="${contract.shareableId}">Copy Link</button>
-                        <!-- ADDED DELETE BUTTON -->
                         <button class="btn btn-danger-outline text-sm delete-btn" data-id="${contractId}" data-name="${contract.businessName}">Delete</button>
                     </div>
                 </div>
@@ -192,43 +195,138 @@ async function loadContracts() {
     });
 }
 
-
 // --- MODAL & FORM CONTROLS ---
 
-function showCreateForm() {
-    currentEditingContractId = null;
-    contractForm.reset();
-    optionsContainer.innerHTML = '';
-    multiSiteContainer.innerHTML = '';
-    installationScheduleInput.value = '';
-    billingAddressContainer.classList.add('hidden');
-    billingSameAsService.checked = true;
+// Resets form, clears dynamic sections, sets defaults
+function resetAndPrepareCreateForm() {
+    // currentEditingContractId = null; // <-- REMOVED THIS LINE
+    contractForm.reset(); // Resets input values
+    optionsContainer.innerHTML = ''; // Clear dynamic options
+    multiSiteContainer.innerHTML = ''; // Clear dynamic sites
+    installationScheduleInput.value = ''; // Clear schedule text area
+    billingAddressContainer.classList.add('hidden'); // Hide billing address
+    billingSameAsService.checked = true; // Set checkbox default
 
-    // Add one default option
-    addOption();
+    // Don't add a default option here, let populateFormForEdit handle options
+    // addOption(); // <-- REMOVED THIS LINE
 
     contractFormTitle.textContent = 'Create New Contract';
     saveContractBtn.querySelector('span').textContent = 'Save Contract as Draft';
+}
+
+
+function showCreateForm() {
+    currentEditingContractId = null; // Explicitly set to null for CREATE
+    resetAndPrepareCreateForm();
+    addOption(); // Add the default first option ONLY when creating
     modal.classList.remove('hidden');
 }
 
+
 function closeModal() {
     modal.classList.add('hidden');
+    // Important: Reset editing state when closing
+    currentEditingContractId = null;
 }
 
 function toggleBillingAddress() {
     billingAddressContainer.classList.toggle('hidden', billingSameAsService.checked);
 }
 
+// --- EDIT FUNCTIONALITY ---
+
+async function showEditForm(contractId) {
+    if (!contractId) return;
+    // Set the ID *before* calling reset, so reset knows not to nullify it (although we removed that line)
+    // currentEditingContractId = contractId; // This is now set inside populateFormForEdit
+
+    try {
+        // 1. Fetch main contract document
+        const contractRef = doc(db, 'contracts', contractId);
+        const contractSnap = await getDoc(contractRef);
+        if (!contractSnap.exists()) {
+            throw new Error("Contract not found.");
+        }
+        const contractData = contractSnap.data();
+
+        // 2. Fetch options subcollection
+        const optionsRef = collection(db, 'contracts', contractId, 'options');
+        const optionsSnap = await getDocs(optionsRef);
+        // Pass the actual contract ID when mapping
+        const optionsData = optionsSnap.docs.map(doc => ({ id: doc.id, contractId: contractId, ...doc.data() }));
+
+
+        // 3. Populate the form
+        populateFormForEdit(contractData, optionsData, contractId); // Pass contractId
+
+        // 4. Show modal
+        modal.classList.remove('hidden');
+
+    } catch (error) {
+        console.error("Error loading contract for edit:", error);
+        showToast(`Error loading contract: ${error.message}`, 'error');
+        currentEditingContractId = null; // Reset on error
+    }
+}
+
+// Populates the entire modal form with data for editing
+function populateFormForEdit(contractData, optionsData, contractId) { // Receive contractId
+    // Reset form first (clears sites, options)
+    resetAndPrepareCreateForm();
+    currentEditingContractId = contractId; // Set the editing ID *after* reset
+
+    // Fill basic fields
+    businessNameInput.value = contractData.businessName || '';
+    agentBusinessNameInput.value = contractData.agentBusinessName || '';
+    customerEmailInput.value = contractData.customerEmail || '';
+    serviceAddressInput.value = contractData.serviceAddress || '';
+
+    // Handle billing address
+    billingSameAsService.checked = contractData.isBillingSameAsService ?? true; // Default to true if undefined
+    billingAddressInput.value = contractData.billingAddress || '';
+    toggleBillingAddress(); // Show/hide based on checkbox
+
+    // Populate Installation Schedule (remove suffix)
+    let scheduleText = contractData.installationScheduleText || '';
+    if (scheduleText.endsWith(installationScheduleSuffix)) {
+        scheduleText = scheduleText.substring(0, scheduleText.length - installationScheduleSuffix.length).trim();
+    }
+    installationScheduleInput.value = scheduleText;
+
+
+    // Populate multi-site addresses (skip the first one, which is the main service address)
+    multiSiteContainer.innerHTML = ''; // Clear default if any
+    contractData.multiSiteAddresses?.slice(1).forEach(address => {
+        addSite(address); // Pass address to pre-fill
+    });
+
+    // Populate options
+    optionsContainer.innerHTML = ''; // Clear the default option added by reset
+    if (optionsData && optionsData.length > 0) {
+        optionsData.forEach(option => {
+            addOption(option); // Pass option data to pre-fill
+        });
+    } else {
+        addOption(); // Add a blank option if none exist
+    }
+
+
+    // Update modal title and button text
+    contractFormTitle.textContent = 'Edit Contract';
+    saveContractBtn.querySelector('span').textContent = 'Update Contract';
+}
+
+
 // --- DYNAMIC FORM BUILDERS ---
 
-function addSite() {
+// Modified addSite to accept an optional address for pre-filling
+function addSite(address = '') {
     const siteId = crypto.randomUUID();
     const siteEl = document.createElement('div');
     siteEl.id = `site-${siteId}`;
     siteEl.className = 'flex items-center space-x-2';
     siteEl.innerHTML = `
-        <input type="text" class="form-input flex-grow site-address-input" placeholder="Enter additional service address">
+        <input type="text" class="form-input flex-grow site-address-input" placeholder="Enter additional service address" value="${address || ''}">
         <button type="button" class="delete-btn text-red-500" data-target="site-${siteId}">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
         </button>
@@ -236,14 +334,29 @@ function addSite() {
     multiSiteContainer.appendChild(siteEl);
 }
 
-function addOption() {
-    const optionId = crypto.randomUUID();
+
+// Modified addOption to accept optional data for pre-filling
+function addOption(optionData = null) {
+    // Use existing option ID if available (from editing), else generate new one
+    const optionId = optionData?.id || crypto.randomUUID();
+    // Keep track of the *original* option ID from Firestore if editing
+    const originalOptionId = optionData?.id || null;
+
     const optionEl = document.createElement('div');
-    optionEl.id = `option-${optionId}`;
+    optionEl.id = `option-${optionId}`; // Use consistent ID for element
     optionEl.className = 'option-card';
+    // Store original ID for potential update logic later if needed
+    if (originalOptionId) {
+        optionEl.dataset.originalId = originalOptionId;
+    }
+
+    // Use data if provided, otherwise default values
+    const title = optionData?.title || 'New Option';
+    const term = optionData?.termMonths || 36;
+
     optionEl.innerHTML = `
         <div class="option-card-header">
-            <h4 class="option-card-title">New Option</h4>
+            <h4 class="option-card-title">${title}</h4>
             <button type="button" class="delete-btn text-red-500 font-bold text-lg" data-target="option-${optionId}">Delete Option</button>
         </div>
         <div class="option-card-body">
@@ -251,11 +364,11 @@ function addOption() {
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                     <label class="form-label">Option Title</label>
-                    <input type="text" class="form-input option-title" placeholder="e.g., Gold Package">
+                    <input type="text" class="form-input option-title" placeholder="e.g., Gold Package" value="${title || ''}">
                 </div>
                 <div>
                     <label class="form-label">Term (Months)</label>
-                    <input type="number" class="form-input option-term" value="36">
+                    <input type="number" class="form-input option-term" value="${term || ''}">
                 </div>
             </div>
 
@@ -294,11 +407,24 @@ function addOption() {
     `;
     optionsContainer.appendChild(optionEl);
 
-    // Add a default item row
-    addTableRow(`table-body-${optionId}`, 'item');
+    // Populate line items if editing
+    if (optionData?.lineItems && Array.isArray(optionData.lineItems)) {
+        optionData.lineItems.forEach(item => {
+            addTableRow(`table-body-${optionId}`, item.type, item); // Pass item data
+        });
+    } else {
+        // Add a default item row only if creating a new option (optionData is null)
+        if (!optionData) {
+             addTableRow(`table-body-${optionId}`, 'item');
+        }
+    }
+    // Calculate totals after populating
+    calculateTotals(optionEl);
 }
 
-function addTableRow(tableBodyId, type) {
+
+// Modified addTableRow to accept optional data for pre-filling
+function addTableRow(tableBodyId, type, itemData = null) {
     const tableBody = document.getElementById(tableBodyId);
     if (!tableBody) return;
 
@@ -307,37 +433,45 @@ function addTableRow(tableBodyId, type) {
     row.id = `row-${rowId}`;
 
     if (type === 'item') {
+        const desc = itemData?.description || '';
+        const qty = itemData?.qty || 1;
+        // Use ?? 0 before toFixed to handle potential undefined/null values safely
+        const mrc = (itemData?.mrc ?? 0).toFixed(2);
+        const nrc = (itemData?.nrc ?? 0).toFixed(2);
         row.className = 'line-item-row';
         row.dataset.type = 'item';
         row.innerHTML = `
-            <td><input type="text" class="form-input item-description" placeholder="Service Description"></td>
-            <td><input type="number" class="form-input item-qty recalculate" value="1" min="1"></td>
-            <td><input type="text" class="form-input item-mrc recalculate" placeholder="0.00"></td>
-            <td><input type="text" class="form-input item-nrc recalculate" placeholder="0.00"></td>
+            <td><input type="text" class="form-input item-description" placeholder="Service Description" value="${desc || ''}"></td>
+            <td><input type="number" class="form-input item-qty recalculate" value="${qty || ''}" min="1"></td>
+            <td><input type="text" class="form-input item-mrc recalculate" placeholder="0.00" value="${mrc || ''}"></td>
+            <td><input type="text" class="form-input item-nrc recalculate" placeholder="0.00" value="${nrc || ''}"></td>
             <td class="text-center"><button type="button" class="delete-row-btn" data-target="row-${rowId}">&times;</button></td>
         `;
     } else if (type === 'header') {
+        const value = itemData?.value || '';
         row.className = 'table-header-row';
         row.dataset.type = 'header';
         row.innerHTML = `
-            <td colspan="4"><input type="text" class="form-input item-header" placeholder="e.g., Monthly Services"></td>
+            <td colspan="4"><input type="text" class="form-input item-header" placeholder="e.g., Monthly Services" value="${value || ''}"></td>
             <td class="text-center"><button type="button" class="delete-row-btn" data-target="row-${rowId}">&times;</button></td>
         `;
     }
     tableBody.appendChild(row);
 }
 
+
 function deleteElement(targetId) {
     const el = document.getElementById(targetId);
     if (el) {
         el.remove();
-        // After deleting, recalculate if it was a table row
+        // After deleting, recalculate if it was a table row within an option card
         const parentCard = el.closest('.option-card');
         if (parentCard) {
             calculateTotals(parentCard);
         }
     }
 }
+
 
 // --- DYNAMIC EVENT HANDLERS ---
 function handleModalClick(e) {
@@ -362,7 +496,7 @@ function handleModalClick(e) {
 }
 
 // Handles clicks on the main contract list
-async function handleContractListClick(e) { // <-- Make async
+async function handleContractListClick(e) {
     const btn = e.target.closest('button');
     if (!btn) return; // Exit if click wasn't on a button
 
@@ -373,7 +507,6 @@ async function handleContractListClick(e) { // <-- Make async
     // Handle Preview Button
     if (btn.classList.contains('preview-btn')) {
         if (shareId) {
-            // Open the customer-facing view page in a new tab
             window.open(`view.html?id=${shareId}`, '_blank');
         } else {
             showToast('Contract does not have a shareable ID.', 'error');
@@ -393,43 +526,60 @@ async function handleContractListClick(e) { // <-- Make async
         }
     }
 
-    // Handle Edit Button
+    // --- UPDATED EDIT LOGIC ---
     if (btn.classList.contains('edit-btn')) {
-        // TODO: Implement edit functionality
-        showToast('Edit functionality is not yet implemented.', 'error');
+        if (contractId) {
+            // Check if contract is signed or locked - prevent editing
+            const contractRef = doc(db, 'contracts', contractId);
+            const contractSnap = await getDoc(contractRef);
+            if (contractSnap.exists()) {
+                const status = contractSnap.data().status;
+                if (status === 'signed' || status === 'locked') {
+                    // Consider allowing unlock here in the future
+                    alert('Cannot edit a signed or locked contract.'); // Simplified message
+                    return;
+                }
+            } else {
+                 alert('Contract not found.'); // Handle case where doc might be deleted
+                 return;
+            }
+            // Proceed to show edit form
+            showEditForm(contractId);
+        }
     }
+    // --- END EDIT LOGIC UPDATE ---
 
-    // --- ADDED DELETE LOGIC ---
+    // Handle Delete Button
     if (btn.classList.contains('delete-btn')) {
         if (!contractId) return;
 
-        // Use confirm() for simplicity, replace with custom modal later if desired
-        if (confirm(`Are you sure you want to permanently delete the contract for "${contractName}"? This action cannot be undone.`)) {
-            btn.disabled = true; // Disable button during deletion
+        if (confirm(`Are you sure you want to permanently delete the contract for "${contractName || 'this contract'}"? This action cannot be undone.`)) {
+            btn.disabled = true;
             btn.textContent = 'Deleting...';
             try {
-                // 1. Delete all options in the subcollection first
+                // Delete subcollection options
                 const optionsRef = collection(db, 'contracts', contractId, 'options');
                 const optionsSnapshot = await getDocs(optionsRef);
                 const deletePromises = optionsSnapshot.docs.map(optionDoc => deleteDoc(optionDoc.ref));
                 await Promise.all(deletePromises);
-                console.log(`Deleted ${optionsSnapshot.size} options for contract ${contractId}`);
 
-                // 2. Delete the main contract document
+                // Delete main document
                 await deleteDoc(doc(db, 'contracts', contractId));
-                console.log(`Deleted contract ${contractId}`);
-                showToast('Contract deleted successfully!', 'success');
-                // The onSnapshot listener will automatically refresh the list
 
+                showToast('Contract deleted successfully!', 'success');
+                // No need to manually refresh list, onSnapshot handles it
             } catch (error) {
                 console.error("Error deleting contract:", error);
                 showToast(`Error deleting contract: ${error.message}`, 'error');
-                btn.disabled = false; // Re-enable button on error
-                btn.textContent = 'Delete';
+                // Re-enable button on error, only if it still exists in the DOM
+                const stillExistsBtn = document.querySelector(`.delete-btn[data-id="${contractId}"]`);
+                if(stillExistsBtn) {
+                    stillExistsBtn.disabled = false;
+                    stillExistsBtn.textContent = 'Delete';
+                }
             }
         }
     }
-    // --- END OF DELETE LOGIC ---
 }
 
 
@@ -437,26 +587,31 @@ function handleModalInput(e) {
     // Recalculate totals on input
     if (e.target.classList.contains('recalculate')) {
         const optionCard = e.target.closest('.option-card');
-        calculateTotals(optionCard);
+        if(optionCard) calculateTotals(optionCard); // Add null check
     }
 
     // Update option card title as user types
     if (e.target.classList.contains('option-title')) {
         const optionCard = e.target.closest('.option-card');
-        const title = e.target.value.trim() || 'New Option';
-        optionCard.querySelector('.option-card-title').textContent = title;
+        if(optionCard) {
+            const title = e.target.value.trim() || 'New Option';
+            optionCard.querySelector('.option-card-title').textContent = title;
+        }
     }
 
-    // Auto-format currency
+    // Auto-format currency on input
     if (e.target.classList.contains('item-mrc') || e.target.classList.contains('item-nrc')) {
-        e.target.value = formatCurrency(e.target.value);
+        // Simple validation - allow numbers and one decimal
+        e.target.value = e.target.value.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1');
     }
 }
+
 
 // --- MATH & FORMATTING ---
 
 function formatCurrency(value) {
-    // Remove non-numeric characters except for one decimal point
+    // This function seems less useful now with the input handler,
+    // might be better used for display formatting if needed elsewhere.
     let num = value.replace(/[^0-9.]/g, '');
     let parts = num.split('.');
     if (parts.length > 2) {
@@ -465,12 +620,18 @@ function formatCurrency(value) {
     return num;
 }
 
+
 function parseCurrency(value) {
-    const num = parseFloat(value.replace(/[^0-9.]/g, ''));
+    // If value is already a number, return it, otherwise parse
+    if (typeof value === 'number') return value;
+    const num = parseFloat(String(value).replace(/[^0-9.]/g, ''));
     return isNaN(num) ? 0 : num;
 }
 
+
 function calculateTotals(optionCard) {
+    if (!optionCard) return; // Add null check
+
     let totalMRC = 0;
     let totalNRC = 0;
 
@@ -483,93 +644,143 @@ function calculateTotals(optionCard) {
         totalNRC += qty * nrc;
     });
 
-    optionCard.querySelector('.total-mrc').textContent = `$${totalMRC.toFixed(2)}`;
-    optionCard.querySelector('.total-nrc').textContent = `$${totalNRC.toFixed(2)}`;
+    const mrcSpan = optionCard.querySelector('.total-mrc');
+    const nrcSpan = optionCard.querySelector('.total-nrc');
+    if (mrcSpan) mrcSpan.textContent = `$${totalMRC.toFixed(2)}`;
+    if (nrcSpan) nrcSpan.textContent = `$${totalNRC.toFixed(2)}`;
 }
 
-// --- SAVE TO FIRESTORE ---
+
+// --- SAVE TO FIRESTORE (MODIFIED FOR CREATE/UPDATE) ---
 
 async function saveContract() {
     saveSpinner.classList.remove('hidden');
     saveContractBtn.disabled = true;
+    const isEditing = !!currentEditingContractId; // Check if we are editing
 
     try {
         // 1. Gather Global Contract Data
         const userInputSchedule = installationScheduleInput.value.trim();
-        const fullInstallationSchedule = userInputSchedule ? `${userInputSchedule} ${installationScheduleSuffix}` : installationScheduleSuffix;
+        // Append suffix only if user provided input
+        const fullInstallationSchedule = userInputSchedule ? `${userInputSchedule}${installationScheduleSuffix}` : '';
 
         const contractData = {
-            businessName: document.getElementById('businessName').value,
-            agentBusinessName: document.getElementById('agentBusinessName').value,
-            customerEmail: document.getElementById('customerEmail').value,
-            serviceAddress: document.getElementById('serviceAddress').value,
+            businessName: businessNameInput.value.trim(),
+            agentBusinessName: agentBusinessNameInput.value.trim(),
+            customerEmail: customerEmailInput.value.trim(),
+            serviceAddress: serviceAddressInput.value.trim(),
             isBillingSameAsService: billingSameAsService.checked,
             billingAddress: billingSameAsService.checked
-                ? document.getElementById('serviceAddress').value
-                : document.getElementById('billingAddress').value,
+                ? serviceAddressInput.value.trim() // Use trimmed service address
+                : billingAddressInput.value.trim(), // Use trimmed billing address
             installationScheduleText: fullInstallationSchedule,
-            status: 'draft',
-            shareableId: crypto.randomUUID().substring(0, 8),
-            createdAt: new Date().toISOString(),
+            // Don't update status, shareableId, createdAt when editing
             adminId: currentUserId,
             multiSiteAddresses: [
-                document.getElementById('serviceAddress').value,
+                serviceAddressInput.value.trim(), // Ensure first address is trimmed
                 ...Array.from(document.querySelectorAll('.site-address-input'))
-                         .map(input => input.value.trim())
-                         .filter(Boolean)
-            ]
+                         .map(input => input.value.trim()) // Trim all site addresses
+                         .filter(Boolean) // Filter out empty strings
+            ].filter((addr, index, self) => addr && self.indexOf(addr) === index) // Ensure unique and non-empty
         };
 
-        // 2. Create the main contract document in Firestore
-        // TODO: Add logic here to UPDATE if currentEditingContractId exists
-        const contractDocRef = await addDoc(collection(db, 'contracts'), contractData);
+        // Validate required fields
+        if (!contractData.businessName || !contractData.customerEmail || !contractData.serviceAddress) {
+            throw new Error("Business Name, Customer Email, and Service Address are required.");
+        }
 
-        // 3. Gather and Save Options Data (as sub-collection documents)
+
+        let contractDocRef;
+        let contractId;
+
+        if (isEditing) {
+            // --- UPDATE LOGIC ---
+            contractId = currentEditingContractId;
+            contractDocRef = doc(db, 'contracts', contractId);
+            // Don't update shareableId or createdAt on update
+            // Status also shouldn't be reset to 'draft' here
+            await updateDoc(contractDocRef, contractData);
+            console.log(`Updated main contract doc: ${contractId}`);
+
+            // Delete existing options before adding new/updated ones
+            const optionsRef = collection(db, 'contracts', contractId, 'options');
+            const optionsSnapshot = await getDocs(optionsRef);
+            const deletePromises = optionsSnapshot.docs.map(optionDoc => deleteDoc(optionDoc.ref));
+            await Promise.all(deletePromises);
+            console.log(`Deleted ${optionsSnapshot.size} existing options for update.`);
+
+        } else {
+            // --- CREATE LOGIC ---
+            contractData.status = 'draft'; // Set initial status
+            contractData.shareableId = crypto.randomUUID().substring(0, 8); // Generate share ID
+            contractData.createdAt = new Date().toISOString(); // Set creation time
+            const addedDoc = await addDoc(collection(db, 'contracts'), contractData);
+            contractId = addedDoc.id; // Get the ID of the newly created doc
+            contractDocRef = doc(db, 'contracts', contractId); // Reference it for adding options
+            console.log(`Created new contract doc: ${contractId}`);
+        }
+
+        // 3. Gather and Save Options Data (Works for both Create and Update)
         const optionCards = document.querySelectorAll('.option-card');
+        if (optionCards.length === 0) {
+            throw new Error("At least one contract option is required.");
+        }
 
         for (const card of optionCards) {
-            // Gather line items for this specific option
             const lineItems = [];
             card.querySelectorAll('tbody tr').forEach(row => {
                 const type = row.dataset.type;
                 if (type === 'item') {
+                    const description = row.querySelector('.item-description')?.value.trim();
+                    if(!description) return; // Skip items without description
                     lineItems.push({
                         type: 'item',
-                        description: row.querySelector('.item-description').value,
-                        qty: parseInt(row.querySelector('.item-qty').value) || 1,
-                        mrc: parseCurrency(row.querySelector('.item-mrc').value),
-                        nrc: parseCurrency(row.querySelector('.item-nrc').value)
+                        description: description,
+                        qty: parseInt(row.querySelector('.item-qty')?.value) || 1,
+                        mrc: parseCurrency(row.querySelector('.item-mrc')?.value),
+                        nrc: parseCurrency(row.querySelector('.item-nrc')?.value)
                     });
                 } else if (type === 'header') {
+                     const value = row.querySelector('.item-header')?.value.trim();
+                     if(!value) return; // Skip empty headers
                     lineItems.push({
                         type: 'header',
-                        value: row.querySelector('.item-header').value
+                        value: value
                     });
                 }
             });
 
-            // Build the option data object
+            // Ensure at least one line item exists per option
+            if (lineItems.length === 0) {
+                 console.warn(`Skipping option "${card.querySelector('.option-title')?.value}" because it has no line items.`);
+                 continue; // Don't save options without items
+            }
+
             const optionData = {
-                title: card.querySelector('.option-title').value,
-                termMonths: parseInt(card.querySelector('.option-term').value) || 36,
-                totalMRC: parseCurrency(card.querySelector('.total-mrc').textContent),
-                totalNRC: parseCurrency(card.querySelector('.total-nrc').textContent),
-                lineItems: lineItems // Save the array of items/headers
+                title: card.querySelector('.option-title')?.value.trim() || 'Untitled Option',
+                termMonths: parseInt(card.querySelector('.option-term')?.value) || 36,
+                totalMRC: parseCurrency(card.querySelector('.total-mrc')?.textContent),
+                totalNRC: parseCurrency(card.querySelector('.total-nrc')?.textContent),
+                lineItems: lineItems
             };
 
-            // Save this option data as a new document in the 'options' sub-collection
-            await addDoc(collection(db, 'contracts', contractDocRef.id, 'options'), optionData);
+            // Add the option as a new document in the 'options' subcollection
+            await addDoc(collection(contractDocRef, 'options'), optionData);
         }
+        console.log(`Saved options for contract ${contractId}.`);
 
-        showToast('Contract saved successfully!', 'success');
-        closeModal();
+        showToast(`Contract ${isEditing ? 'updated' : 'saved'} successfully!`, 'success');
+        closeModal(); // Also resets currentEditingContractId
 
     } catch (error) {
-        console.error("Error saving contract: ", error);
+        console.error(`Error ${isEditing ? 'updating' : 'saving'} contract: `, error);
         showToast(`Error: ${error.message}`, 'error');
     } finally {
         saveSpinner.classList.add('hidden');
+        // Re-enable button regardless of success/error
         saveContractBtn.disabled = false;
+        // Reset button text just in case
+        saveContractBtn.querySelector('span').textContent = isEditing ? 'Update Contract' : 'Save Contract as Draft';
     }
 }
 
