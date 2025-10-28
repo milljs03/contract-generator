@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contract Proposal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Updated to link to the new view.css file -->
+    <link rel="stylesheet" href="view.css">
+</head>
+<body class="bg-gray-100 font-inter">
+
+    <!-- Loading State -->
+    <div id="loading-state" class="min-h-screen flex items-center justify-center">
+        <div class="text-center">
+            <svg class="animate-spin h-8 w-8 text-blue-600 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <p class="mt-2 font-medium text-gray-600">Loading Contract...</p>
+        </div>
+    </div>
+
+    <!-- Error State -->
+    <div id="error-state" class="min-h-screen flex items-center justify-center hidden">
+         <div class="bg-white p-8 rounded-lg shadow-md text-center max-w-lg">
+            <h1 class="text-2xl font-bold mb-4 text-red-600">Contract Not Found</h1>
+            <p class="text-gray-700">The contract link appears to be invalid or expired. Please contact your account representative for a new link.</p>
+        </div>
+    </div>
+
+    <!-- Main Contract View -->
+    <div id="contract-view" class="hidden max-w-5xl mx-auto my-12 p-8 md:p-12 bg-white shadow-2xl rounded-lg">
+        
+        <!-- Header -->
+        <header class="mb-8 pb-4 border-b">
+            <h1 class="text-3xl font-bold text-gray-900">Service Agreement</h1>
+            <p class="text-lg text-gray-600">Proposal For: <span id="view-business-name" class="font-semibold text-gray-800"></span></p>
+        </header>
+
+        <!-- Contract Details -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 text-sm">
+            <div class="view-detail-box">
+                <h4 class="view-detail-title">Prepared For</h4>
+                <p id="detail-business-name"></p>
+                <p id="detail-agent-name" class="hidden"></p>
+            </div>
+            <div class="view-detail-box">
+                <h4 class="view-detail-title">Customer Email</h4>
+                <p id="detail-customer-email"></p>
+            </div>
+            <div class="view-detail-box">
+                <h4 class="view-detail-title">Service Address(es)</h4>
+                <ul id="detail-service-addresses" class="list-disc list-inside">
+                    <!-- JS will populate this -->
+                </ul>
+            </div>
+            <div class="view-detail-box">
+                <h4 class="view-detail-title">Billing Address</h4>
+                <p id="detail-billing-address"></p>
+            </div>
+        </div>
+
+        <!-- Contract Options -->
+        <div>
+            <h2 class="text-2xl font-semibold text-gray-800 mb-4">Please Select an Option:</h2>
+            <div id="options-view-container" class="space-y-6">
+                <!-- JS will populate options here -->
+            </div>
+        </div>
+
+        <!-- Signature Section -->
+        <div id="signature-section" class="mt-12 pt-8 border-t">
+            <h2 class="text-2xl font-semibold text-gray-800 mb-4">Agreement & Signature</h2>
+            
+            <div class="mb-4 text-sm text-gray-700 space-y-2">
+                <p>By signing below, you acknowledge that you have read and agree to the terms and conditions outlined in the selected option.</p>
+                <p class="font-semibold">Your selected option: <span id="selected-option-title" class="text-blue-600">None</span></p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label for="signer-name" class="form-label">Printed Name</label>
+                    <input type="text" id="signer-name" class="form-input">
+                </div>
+            </div>
+
+            <div>
+                <label class="form-label">Please sign below:</label>
+                <canvas id="signature-pad" class="border border-gray-400 rounded-md w-full h-48"></canvas>
+                <button id="clear-signature-btn" type="button" class="text-sm text-blue-600 hover:underline mt-1">Clear Signature</button>
+            </div>
+
+            <div class="mt-8 text-right">
+                <button id="accept-contract-btn" class="btn btn-primary btn-lg" disabled>
+                    Select an Option to Sign
+                </button>
+            </div>
+        </div>
+
+        <!-- Thank You / Locked State -->
+        <div id="thank-you-state" class="hidden mt-12 p-8 bg-green-50 border-l-4 border-green-500 rounded-md">
+            <h2 class="text-2xl font-bold text-green-800">Thank You!</h2>
+            <p class="mt-2 text-gray-700">This contract was signed by <strong id="signed-by-name"></strong> on <strong id="signed-on-date"></strong>.</p>
+            <p class="mt-1 text-gray-600">This document is now locked. Please contact your account representative if you have any questions.</p>
+        </div>
+
+    </div>
+    
+    <!-- We need this script for the signature pad -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/signature_pad/1.5.3/signature_pad.min.js"></script>
+    <script type="module" src="firebase.js"></script>
+    <script type="module" src="view.js"></script>
+</body>
+</html>
+
