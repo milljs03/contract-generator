@@ -6,10 +6,9 @@
     <title>Contract Proposal</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Link to the dedicated view.css file -->
-    <link rel="stylesheet" href="view.css">
-    <!-- Add Google Font for Cursive -->
+    <!-- Google Font for Cursive Signature -->
     <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="view.css">
 </head>
 <body class="bg-gray-100 font-inter">
 
@@ -64,127 +63,146 @@
             </div>
         </div>
 
-        <!-- REMOVED Installation Schedule Display Div -->
-
         <!-- Contract Options -->
-        <div class="mb-8">
+        <div>
             <h2 class="text-2xl font-semibold text-gray-800 mb-4">Please Select an Option:</h2>
             <div id="options-view-container" class="space-y-6">
                 <!-- JS will populate options here -->
             </div>
         </div>
 
-        <!-- Terms of Service Section -->
-        <div id="terms-section" class="mb-8">
-             <details class="terms-details bg-gray-50 border rounded-md">
-                 <summary class="terms-summary">
-                     View Terms of Agreement
-                 </summary>
-                 <div class="terms-content">
-                     <h3 class="font-semibold text-lg mb-2">Terms of Agreement</h3>
+        <!-- Terms of Agreement Dropdown -->
+        <div id="terms-container" class="mt-12 pt-8 border-t">
+             <details id="terms-section" class="terms-details">
+                <summary class="terms-summary">
+                    View Full Terms of Agreement
+                </summary>
+                <div class="terms-content">
+                    <h3 class="terms-h3">Community Fiber Network (CFN) – Terms of Agreement (Business)</h3>
 
-                     <h4 class="font-medium mt-4 mb-1">Detail of Services</h4>
-                     <ol class="list-decimal list-inside space-y-1 text-sm">
-                         <li>Customer is responsible for all equipment, networks, or otherwise beyond the termination point(s) installed by the Community Fiber Network (CFN).</li>
-                         <li>This quote is for the services included herein and for the term selected on the signature page. Prices include all access charges and surcharges, excluding applicable sales tax.</li>
-                         <li>CFN will provide installation and support of CFN-owned equipment. CFN will provide data services support for requests involving CFN services and within the scope of CFN's business offerings.</li>
-                         <li>CFN will provide pertinent information to the Customer or their vendor (e.g., username/password, IP information, configuration details) as deemed necessary by CFN for proper service function.</li>
-                         <li>CFN does not support hardware or software provided by other vendors.</li>
-                         <li>(If applicable) This agreement supersedes any previous agreement for the relevant location(s). Any early termination penalties from a previous agreement may be incorporated into the NRC of this proposal as agreed upon by CFN and Customer.</li>
-                     </ol>
+                    <h4 class="terms-h4">1. Scope of Services</h4>
+                    <h5 class="terms-h5">1.1. Customer Responsibility</h5>
+                    <p>The Customer (“Customer”) is solely responsible for all equipment, internal wiring, networking, power, and systems beyond the demarcation or termination point(s) installed by Community Fiber Network (“CFN”). CFN assumes no liability for the configuration, maintenance, or functionality of any Customer-owned or third-party hardware, software, or systems.</p>
+                    <h5 class="terms-h5">1.2. Services Covered</h5>
+                    <p>This Agreement applies only to the specific services, locations, and contract term outlined in the accompanying proposal and/or signature page. All quoted pricing includes access charges and network surcharges, but excludes applicable federal, state, or local taxes.</p>
+                    <h5 class="terms-h5">1.3. CFN Responsibilities</h5>
+                    <p>CFN shall install and maintain CFN-owned equipment and provide technical support solely for CFN services and within the defined scope of CFN’s business offerings.</p>
+                    <p>CFN will furnish necessary configuration details (e.g., IP addressing, credentials, and routing information) to the Customer or the Customer’s designated vendor as CFN deems reasonably necessary for service operation.</p>
+                    <h5 class="terms-h5">1.4. Third-Party Equipment and Vendors</h5>
+                    <p>CFN is not responsible for the installation, maintenance, or operation of equipment or software not supplied or managed by CFN, nor for delays caused by Customer vendors, contractors, or IT personnel.</p>
+                    <h5 class="terms-h5">1.5. Superseding Clause</h5>
+                    <p>(If applicable) This Agreement supersedes and replaces all prior agreements between CFN and the Customer for the same service location(s). Any early termination penalties or outstanding charges from a prior agreement may, upon mutual consent, be incorporated into the Non-Recurring Charge (“NRC”) of this proposal.</p>
 
-                     <h4 class="font-medium mt-4 mb-1">Security & Privacy</h4>
-                     <ol class="list-decimal list-inside space-y-1 text-sm">
-                         <li>CFN acts as a service provider. Customers are advised to discuss their computing environment, network structure, and security needs with their hardware/software vendor or internal IT personnel.</li>
-                         <li>CFN will use commercially reasonable efforts to maintain the security of its underlying network, systems, services, and associated customer information. CFN does not sell, advertise, or solicit for sale its customer lists or contact information.</li>
-                     </ol>
+                    <h4 class="terms-h4">2. Security and Privacy</h4>
+                    <h5 class="terms-h5">2.1. Customer Security Responsibilities</h5>
+                    <p>CFN provides network transport and connectivity services only. Customer is responsible for implementing and maintaining adequate cybersecurity measures—including but not limited to firewalls, antivirus protection, user access controls, and data backup.</p>
+                    <h5 class="terms-h5">2.2. CFN Network Security</h5>
+                    <p>CFN will use commercially reasonable efforts to safeguard its core network, systems, and customer data. CFN shall not be liable for breaches or data loss originating from the Customer’s network, equipment, or third-party vendors.</p>
+                    <h5 class="terms-h5">2.3. Confidentiality</h5>
+                    <p>CFN does not sell, rent, or disclose Customer contact information or network usage data to third parties, except as required by law or as necessary to fulfill CFN’s service obligations.</p>
 
-                     <h4 class="font-medium mt-4 mb-1">Installation Schedule</h4>
-                     <ol class="list-decimal list-inside space-y-1 text-sm">
-                         <!-- ADDED id and REMOVED static text -->
-                         <li id="dynamic-installation-schedule" class="whitespace-pre-line">
-                            <!-- JS will populate this -->
-                         </li>
-                     </ol>
+                    <h4 class="terms-h4">3. Installation and Scheduling</h4>
+                    <h5 class="terms-h5">3.1. Installation Window</h5>
+                    <p id="dynamic-installation-schedule">Installation timelines vary based on location, required permits, and construction needs. CFN estimates a maximum installation timeframe of up to 10 weeks per location, contingent upon state permits and construction dependencies. Installation may often be completed sooner, and CFN will provide updates throughout the process. Special installations, ad hoc requests, or delays caused by the Customer's vendor may extend timelines and potentially incur additional costs.</p> 
+                    <h5 class="terms-h5">3.2. Site Access and Readiness</h5>
+                    <p>Customer shall provide CFN with all necessary site access, power availability, and environmental readiness required for installation. Customer-caused delays may extend completion dates and may incur additional costs.</p>
 
-                     <h4 class="font-medium mt-4 mb-1">Billing</h4>
-                     <ol class="list-decimal list-inside space-y-1 text-sm">
-                         <li>CFN bills for services one month in advance. The initial invoice will include applicable installation fees (NRC), prorated service charges for the first month (from the service activation date), and service charges for the following full month in advance.</li>
-                         <li>Pricing is subject to change under the terms of this agreement. However, the Monthly Recurring Charges (MRC) stated in the selected option are guaranteed not to increase during the initial contract term.</li>
-                     </ol>
+                    <h4 class="terms-h4">4. Billing and Payment</h4>
+                    <h5 class="terms-h5">4.1. Billing Commencement</h5>
+                    <p>Billing shall commence on the earlier of: (a) the date CFN confirms that service has been installed and is available for activation (“Fiber Installation Date”), or (b) the date CFN determines that the service is fully provisioned and ready for Customer use, even if the Customer’s own equipment, network configuration, or vendor delays prevent immediate use (“Ready for Service Date”). This clause ensures CFN may begin billing when the network service is technically available, even if Customer utilization has not begun.</p>
+                    <h5 class="terms-h5">4.2. Invoicing</h5>
+                    <p>CFN invoices Monthly Recurring Charges (“MRC”) one month in advance. The initial invoice shall include: All applicable installation fees (NRC), Prorated MRC from the Ready for Service Date through the end of the current billing cycle, and One full month of MRC in advance.</p>
+                    <h5 class="terms-h5">4.3. Rate Assurance</h5>
+                    <p>The MRC specified in the executed proposal is guaranteed not to increase during the initial contract term, provided the scope of services remains unchanged. Adjustments may apply thereafter with thirty (30) days’ written notice.</p>
+                    <h5 class="terms-h5">4.4. Taxes and Surcharges</h5>
+                    <p>All rates exclude applicable sales tax, regulatory fees, and surcharges unless expressly stated otherwise.</p>
 
-                     <h4 class="font-medium mt-4 mb-1">Term</h4>
-                     <ol class="list-decimal list-inside space-y-1 text-sm">
-                         <li>The term of this agreement commences upon the execution (signing) of this document and continues for the duration specified in the selected option.</li>
-                     </ol>
+                    <h4 class="terms-h4">5. Term and Renewal</h4>
+                    <h5 class="terms-h5">5.1. Commencement and Duration</h5>
+                    <p>The initial term of this Agreement begins on the Fiber Installation Date or Ready for Service Date, whichever occurs first, and continues for the duration specified in the executed proposal.</p>
+                    <h5 class="terms-h5">5.2. Post-Term Termination</h5>
+                    <p>Upon completion of the initial term, Customer may terminate service by providing at least thirty (30) days’ written notice to CFN. No termination fee applies if all balances are paid in full.</p>
+                    <h5 class="terms-h5">5.3. Automatic Renewal</h5>
+                    <p>If no termination notice is received prior to the expiration date, this Agreement may automatically renew on a month-to-month basis under the same terms and MRC then in effect.</p>
 
-                     <h4 class="font-medium mt-4 mb-1">Termination (Post-Term)</h4>
-                     <ol class="list-decimal list-inside space-y-1 text-sm">
-                         <li>Upon completion of the initial contract term, the Customer may cancel services by providing 30 days' written notice to CFN, with no cancellation fee, provided all outstanding balances are paid.</li>
-                     </ol>
+                    <h4 class="terms-h4">6. Early Termination</h4>
+                    <h5 class="terms-h5">6.1. Customer-Initiated Termination</h5>
+                    <p>If Customer terminates services prior to the expiration of the initial term, an Early Termination Fee (ETF) shall apply, calculated as 50% of the remaining MRC balance for the unfulfilled months. Example: A contract with an $800/month MRC and six (6) months remaining incurs an ETF of $2,400 ($800 × 6 × 0.5).</p>
+                    <h5 class="terms-h5">6.2. Equipment Return</h5>
+                    <p>All CFN-installed Customer Premises Equipment (“CPE”) remains CFN property. Customer must return or make such equipment available for retrieval within fifteen (15) days of termination. Failure to return equipment will result in a $600 equipment fee, waived if Customer cooperates with CFN to facilitate pickup.</p>
 
-                     <p class="text-sm mt-4 italic">This quote is valid for 30 business days from the date generated unless otherwise stated.</p>
+                    <h4 class="terms-h4">7. Default</h4>
+                    <h5 class="terms-h5">7.1. Payment Default</h5>
+                    <p>Customer shall be deemed in default if any payment is not received within thirty (30) days of the due date. Upon default, CFN may, after providing fourteen (14) days’ written notice, suspend or terminate services and pursue all remedies permitted under law.</p>
+                    <h5 class="terms-h5">7.2. Collection and Legal Costs</h5>
+                    <p>Customer agrees to reimburse CFN for all reasonable costs incurred in the enforcement of this Agreement, including attorney’s fees, collection agency fees, and court costs.</p>
 
-                     <hr class="my-4">
+                    <h4 class="terms-h4">8. Limitation of Liability</h4>
+                    <h5 class="terms-h5">8.1. Service Credits</h5>
+                    <p>CFN’s liability for any service interruption or performance failure shall be limited to a pro-rata credit of the MRC for the affected service period.</p>
+                    <h5 class="terms-h5">8.2. Exclusion of Consequential Damages</h5>
+                    <p>In no event shall CFN be liable for indirect, incidental, special, punitive, or consequential damages, including but not limited to loss of revenue, profits, or data, arising out of or relating to this Agreement or CFN’s performance hereunder.</p>
+                    <h5 class="terms-h5">8.3. Total Liability Cap</h5>
+                    <p>CFN’s total cumulative liability, whether in contract, tort, or otherwise, shall not exceed the total MRC paid by the Customer for the affected service during the three (3) months preceding the event giving rise to the claim.</p>
 
-                     <h3 class="font-semibold text-lg mb-2">Additional Terms</h3>
+                    <h4 class="terms-h4">9. Miscellaneous</h4>
+                    <h5 class="terms-h5">9.1. Force Majeure</h5>
+                    <p>CFN shall not be liable for delays or failures in performance caused by events beyond its reasonable control, including but not limited to natural disasters, power failures, labor disputes, vendor delays, or government actions.</p>
+                    <h5 class="terms-h5">9.2. Governing Law and Venue</h5>
+                    <p>This Agreement shall be governed by and construed in accordance with the laws of the State of [Insert State], without regard to its conflict-of-law principles. The parties consent to exclusive jurisdiction and venue in the courts of [Insert County/State].</p>
+                    <h5 class="terms-h5">9.3. Severability</h5>
+                    <p>If any provision of this Agreement is determined invalid or unenforceable, the remaining provisions shall remain in full force and effect.</p>
+                    <h5 class="terms-h5">9.4. Entire Agreement</h5>
+                    <p>This Agreement, together with any signed proposals, schedules, or addenda, constitutes the entire understanding between CFN and the Customer and supersedes all prior oral or written agreements concerning the subject matter herein.</p>
 
-                     <h4 class="font-medium mt-4 mb-1">Early Termination</h4>
-                     <ol class="list-decimal list-inside space-y-1 text-sm">
-                         <li>If the Customer terminates services before the expiration of the initial contract term, an early termination fee (ETF) will apply. The ETF is calculated as 50% of the Monthly Recurring Charge (MRC) for the selected option, multiplied by the number of months remaining in the unfulfilled term. Additionally, a $600 fee may apply for failure to return CFN-installed customer premise equipment (CPE). This equipment fee will be waived if the Customer cooperates with CFN to schedule and complete the removal of the CPE. (Example: Terminating a $800/month contract with 6 months remaining incurs an ETF of $2400 (6 months * $800 * 0.5), provided the equipment is returned).</li>
-                     </ol>
+                    <h4 class="terms-h4">10. Contact</h4>
+                    <p>For questions, service modifications, or billing inquiries, please contact your designated Community Fiber Network (CFN) representative.</p>
 
-                     <h4 class="font-medium mt-4 mb-1">Default</h4>
-                     <ol class="list-decimal list-inside space-y-1 text-sm">
-                         <li>Customer shall be deemed in default upon failure to pay any amount due within thirty (30) days of the due date. Upon default, CFN may, at its option and with 14 days prior written notice, terminate all services provided under this agreement.</li>
-                     </ol>
-
-                      <h4 class="font-medium mt-4 mb-1">Contact</h4>
-                     <ol class="list-decimal list-inside space-y-1 text-sm">
-                         <li>Please contact your CFN representative if you have questions regarding this proposal or require modifications.</li>
-                     </ol>
-                 </div>
-             </details>
+                </div>
+            </details>
         </div>
+
 
         <!-- Signature Section -->
         <div id="signature-section" class="mt-12 pt-8 border-t">
             <h2 class="text-2xl font-semibold text-gray-800 mb-4">Agreement & Signature</h2>
 
             <div class="mb-4 text-sm text-gray-700 space-y-2">
-                <p>By signing below, you acknowledge that you have read and agree to the <span class="font-medium">Terms of Agreement</span> outlined above and the details of the selected option.</p>
+                <p>By signing below, you acknowledge that you have read and agree to the <a href="#terms-section" class="text-blue-600 underline hover:text-blue-800">Terms of Agreement</a> outlined above and the details of the selected option.</p>
                 <p class="font-semibold">Your selected option: <span id="selected-option-title" class="text-blue-600">None</span></p>
             </div>
 
-            <!-- Printed Name -->
-            <div class="mb-4">
-                <label for="signer-name" class="form-label">Printed Name</label>
-                <input type="text" id="signer-name" class="form-input">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label for="signer-name" class="form-label">Printed Name</label>
+                    <input type="text" id="signer-name" class="form-input">
+                </div>
             </div>
 
-            <!-- Signature Type Choice -->
+            <!-- Signature Method Toggle -->
             <div class="mb-4">
                 <input type="checkbox" id="use-typed-signature" class="form-checkbox">
                 <label for="use-typed-signature" class="ml-2 text-sm text-gray-700">Use typed name as signature (renders as cursive)</label>
             </div>
 
-            <!-- Signature Area (Canvas or Typed) -->
-            <div class="signature-area">
-                <label class="form-label">Signature:</label>
-                <!-- Canvas (Initially Visible) -->
-                <div id="signature-canvas-container">
-                    <canvas id="signature-pad" class="border border-gray-400 rounded-md w-full h-48 bg-gray-50"></canvas>
-                    <button id="clear-signature-btn" type="button" class="text-sm text-blue-600 hover:underline mt-1">Clear Signature</button>
-                </div>
-                <!-- Typed Cursive Display (Initially Hidden) -->
-                <div id="typed-signature-display" class="hidden border border-gray-300 rounded-md w-full h-48 p-4 bg-gray-50 flex items-center justify-center">
-                    <span id="typed-signature-text" class="typed-signature-font text-3xl text-gray-800"></span>
-                </div>
+            <!-- Signature Canvas (Initially visible) -->
+            <div id="signature-canvas-container">
+                <label class="form-label">Please sign below:</label>
+                <canvas id="signature-pad" class="border border-gray-300 rounded-md w-full h-48 bg-gray-50"></canvas>
+                <button id="clear-signature-btn" type="button" class="text-sm text-blue-600 hover:underline mt-1">Clear Signature</button>
+            </div>
+
+            <!-- Typed Signature Display (Initially hidden) -->
+            <div id="typed-signature-display" class="hidden">
+                 <label class="form-label">Signature:</label>
+                 <div id="typed-signature-text" class="typed-signature-font text-3xl border border-gray-300 rounded-md p-4 bg-gray-50 h-48 flex items-center justify-center">
+                     <!-- Cursive name appears here -->
+                 </div>
             </div>
 
             <div class="mt-8 text-right">
                 <button id="accept-contract-btn" class="btn btn-primary btn-lg" disabled>
-                    Select an Option to Sign
+                    Select an Option Above
                 </button>
             </div>
         </div>
@@ -193,18 +211,17 @@
         <div id="thank-you-state" class="hidden mt-12 p-8 bg-green-50 border-l-4 border-green-500 rounded-md">
             <h2 class="text-2xl font-bold text-green-800">Thank You!</h2>
             <p class="mt-2 text-gray-700">This contract was signed by <strong id="signed-by-name"></strong> on <strong id="signed-on-date"></strong>.</p>
-            <p class="mt-1 text-gray-600">This document is now locked. Please contact your account representative if you have any questions.</p>
             <div id="final-signature-display" class="mt-4">
-                 <h4 class="font-medium text-gray-700 mb-1">Signature Provided:</h4>
-                 <!-- JS will populate this -->
+                <!-- Saved signature (typed or drawn) appears here -->
             </div>
+            <p class="mt-4 text-gray-600">This document is now locked. Please contact your account representative if you have any questions.</p>
         </div>
 
     </div>
 
-    <!-- Signature Pad Library -->
+    <!-- We need this script for the signature pad -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/signature_pad/1.5.3/signature_pad.min.js"></script>
-    <!-- MOVED SCRIPT TAGS TO THE END -->
+    <!-- Moved scripts to the end -->
     <script type="module" src="firebase.js"></script>
     <script type="module" src="view.js"></script>
 </body>
