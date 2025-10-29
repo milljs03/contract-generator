@@ -1,4 +1,11 @@
 import { db, collection, doc, getDoc, getDocs, setDoc, query, where } from './firebase.js';
+// Import functions for triggering Cloud Function
+import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-functions.js";
+
+// Initialize Firebase Functions
+const functions = getFunctions();
+// Rename function reference for clarity
+const sendSignedConfirmationEmail = httpsCallable(functions, 'sendSignedConfirmationEmail'); // Name of NEW Cloud Function
 
 // DOM Elements
 const loadingState = document.getElementById('loading-state');
@@ -15,7 +22,7 @@ const detailBillingAddress = document.getElementById('detail-billing-address');
 const dynamicInstallationScheduleLi = document.getElementById('dynamic-installation-schedule');
 
 // Options
-const optionsSection = document.getElementById('options-section'); // Wrapper for options
+const optionsSection = document.getElementById('options-section');
 const optionsViewContainer = document.getElementById('options-view-container');
 
 // Signature Elements
@@ -33,23 +40,34 @@ const acceptContractBtn = document.getElementById('accept-contract-btn');
 const signedByName = document.getElementById('signed-by-name');
 const signedOnDate = document.getElementById('signed-on-date');
 const finalSignatureDisplay = document.getElementById('final-signature-display');
-const chosenOptionDisplay = document.getElementById('chosen-option-display'); // New container
+const chosenOptionDisplay = document.getElementById('chosen-option-display');
+
+// Post-Sign Elements
+const postSignActions = document.getElementById('post-sign-actions');
+const printContractBtn = document.getElementById('print-contract-btn');
+// Updated ID reference
+const emailSummaryBtn = document.getElementById('email-summary-btn');
+const emailConfirmationSection = document.getElementById('email-confirmation-section');
+// Updated ID reference
+const summaryEmailInput = document.getElementById('summary-email-input');
+const confirmEmailBtn = document.getElementById('confirm-email-btn');
+const cancelEmailBtn = document.getElementById('cancel-email-btn');
+const emailStatusMessage = document.getElementById('email-status-message');
+
 
 let signaturePad;
 let currentContractId = null;
-let currentContractData = null; // Store fetched contract data
+let currentContractData = null;
 let selectedOptionId = null;
-let selectedOptionData = null; // Store data for the *currently selected* radio button
-let chosenOptionData = null; // Store data for the *signed/locked* option
+let selectedOptionData = null;
+let chosenOptionData = null;
 let isUsingTypedSignature = false;
 
 // --- INITIALIZATION ---
 document.addEventListener('DOMContentLoaded', () => {
-    // Delay initialization slightly to ensure canvas is ready
     setTimeout(initializeSignaturePad, 100);
     window.addEventListener("resize", resizeCanvas);
 
-    // Event listeners
     clearSignatureBtn.addEventListener('click', () => {
         if (signaturePad) { signaturePad.clear(); checkCanSign(); }
     });
@@ -60,16 +78,21 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     useTypedSignatureCheckbox.addEventListener('change', handleSignatureMethodChange);
 
-    // Load contract data
+    // Updated Post-Sign Action Listeners
+    printContractBtn.addEventListener('click', printContract);
+    emailSummaryBtn.addEventListener('click', showEmailModal); // Updated ID
+    cancelEmailBtn.addEventListener('click', hideEmailModal);
+    confirmEmailBtn.addEventListener('click', handleSendEmail);
+
     loadContract();
 });
 
+// --- Signature Pad & Canvas Logic ---
 function initializeSignaturePad() {
-    // Check if canvas exists and is visible
     if (signaturePadCanvas && signaturePadCanvas.offsetParent !== null) {
         resizeCanvas();
         signaturePad = new SignaturePad(signaturePadCanvas, {
-             backgroundColor: 'rgb(249, 250, 251)', // Match bg-gray-50
+             backgroundColor: 'rgb(249, 250, 251)',
         });
         signaturePad.addEventListener("endStroke", () => {
             checkCanSign();
@@ -80,28 +103,26 @@ function initializeSignaturePad() {
     }
 }
 
-
 function resizeCanvas() {
-    if (!signaturePadCanvas || signaturePadCanvas.offsetParent === null) return; // Don't resize if hidden
+    if (!signaturePadCanvas || signaturePadCanvas.offsetParent === null) return;
     const ratio = Math.max(window.devicePixelRatio || 1, 1);
     signaturePadCanvas.style.width = '100%';
-    signaturePadCanvas.style.height = '12rem'; // h-48
+    signaturePadCanvas.style.height = '12rem';
     signaturePadCanvas.width = signaturePadCanvas.offsetWidth * ratio;
     signaturePadCanvas.height = signaturePadCanvas.offsetHeight * ratio;
     const ctx = signaturePadCanvas.getContext("2d");
     if (ctx) {
         ctx.scale(ratio, ratio);
-        const data = signaturePad ? signaturePad.toData() : null; // Store current drawing
-        signaturePad?.clear(); // Clears drawing
-        ctx.fillStyle = 'rgb(249, 250, 251)'; // Re-apply background
+        const data = signaturePad ? signaturePad.toData() : null;
+        signaturePad?.clear();
+        ctx.fillStyle = 'rgb(249, 250, 251)';
         ctx.fillRect(0,0, signaturePadCanvas.width, signaturePadCanvas.height);
-        if(data) signaturePad?.fromData(data); // Restore drawing if exists
+        if(data) signaturePad?.fromData(data);
         console.log("Canvas resized.");
     } else {
         console.error("Could not get 2D context for signature canvas.");
     }
 }
-
 
 // --- Signature Method Handling ---
 function handleSignatureMethodChange() {
@@ -114,7 +135,6 @@ function handleSignatureMethodChange() {
     } else {
         signatureCanvasContainer.classList.remove('hidden');
         typedSignatureDisplay.classList.add('hidden');
-        // Ensure signature pad is ready if switching back
         if (!signaturePad) { initializeSignaturePad(); }
         else { resizeCanvas(); }
     }
@@ -141,7 +161,6 @@ function checkCanSign() {
 
     if (hasName && hasSignature && hasOption) {
         acceptContractBtn.disabled = false;
-        // Check if selectedOptionData exists before accessing title
         acceptContractBtn.textContent = `Accept & Sign for ${selectedOptionData?.title || 'Selected Option'}`;
     } else {
         acceptContractBtn.disabled = true;
@@ -167,9 +186,9 @@ async function loadContract() {
 
         const contractDoc = querySnapshot.docs[0];
         currentContractId = contractDoc.id;
-        currentContractData = contractDoc.data(); // Store the fetched contract data
+        currentContractData = contractDoc.data();
 
-        // Populate Contract Details
+        // Populate Details
         viewBusinessName.textContent = currentContractData.businessName;
         detailBusinessName.textContent = currentContractData.businessName;
         detailCustomerEmail.textContent = currentContractData.customerEmail;
@@ -180,36 +199,27 @@ async function loadContract() {
         }
         detailServiceAddresses.innerHTML = '';
         currentContractData.multiSiteAddresses.forEach(address => {
-            const li = document.createElement('li');
+            const li = document.createElement('ul');
             li.textContent = address;
             detailServiceAddresses.appendChild(li);
         });
-
-        // Populate Installation Schedule
         if (currentContractData.installationScheduleText && dynamicInstallationScheduleLi) {
             dynamicInstallationScheduleLi.textContent = currentContractData.installationScheduleText;
         } else if (dynamicInstallationScheduleLi) {
-             dynamicInstallationScheduleLi.textContent = "Installation schedule details default to standard terms."; // More accurate fallback
+             dynamicInstallationScheduleLi.textContent = "Installation schedule details default to standard terms.";
         }
 
-        // Check if contract is already signed/locked
+        // Check Status
         if (currentContractData.status === 'signed' || currentContractData.status === 'locked') {
-            // Fetch the specific chosen option's data
              if (currentContractData.selectedOptionId) {
                  const optionRef = doc(db, 'contracts', currentContractId, 'options', currentContractData.selectedOptionId);
                  const optionSnap = await getDoc(optionRef);
                  if (optionSnap.exists()) {
-                     chosenOptionData = optionSnap.data(); // Store the chosen option data
-                 } else {
-                     console.warn(`Selected option ${currentContractData.selectedOptionId} not found.`);
-                 }
-             } else {
-                 console.warn("Contract is signed but selectedOptionId is missing.");
-             }
-             // Now show the locked view (which will use chosenOptionData)
+                     chosenOptionData = optionSnap.data();
+                 } else { console.warn(`Selected option ${currentContractData.selectedOptionId} not found.`); }
+             } else { console.warn("Contract is signed but selectedOptionId is missing."); }
             showLockedView(currentContractData);
         } else {
-            // Load all options for selection
             await loadOptions(currentContractId);
         }
 
@@ -227,21 +237,20 @@ async function loadContract() {
 async function loadOptions(contractId) {
     const optionsSnapshot = await getDocs(collection(db, 'contracts', contractId, 'options'));
 
-    optionsViewContainer.innerHTML = ''; // Clear previous options
+    optionsViewContainer.innerHTML = '';
     optionsSnapshot.forEach(doc => {
         const option = doc.data();
         const optionId = doc.id;
-        const optionEl = createOptionElement(option, optionId, true); // Create element with radio button
+        const optionEl = createOptionElement(option, optionId, true);
         optionsViewContainer.appendChild(optionEl);
     });
 }
 
-// --- Helper to Create Option HTML (used by loadOptions and showLockedView) ---
+// --- Helper to Create Option HTML ---
 function createOptionElement(option, optionId, includeRadioButton = false) {
     const optionEl = document.createElement('div');
-    optionEl.className = includeRadioButton ? 'view-option-card' : 'view-option-card-locked border border-gray-300 rounded-lg overflow-hidden'; // Different style for locked view
+    optionEl.className = includeRadioButton ? 'view-option-card' : 'view-option-card-locked border border-gray-300 rounded-lg overflow-hidden';
 
-    // Build Table Body
     let itemCounter = 0;
     const tableBodyHtml = option.lineItems.map(item => {
         if (item.type === 'header') {
@@ -263,7 +272,6 @@ function createOptionElement(option, optionId, includeRadioButton = false) {
         return '';
     }).join('');
 
-    // Build Table Footer
     const totalMRC = typeof option.totalMRC === 'number' ? option.totalMRC : 0;
     const totalNRC = typeof option.totalNRC === 'number' ? option.totalNRC : 0;
     const tableFooterHtml = `
@@ -276,7 +284,6 @@ function createOptionElement(option, optionId, includeRadioButton = false) {
         </tfoot>
     `;
 
-    // Assemble Full Option Card
     const tableHtml = `
         <table class="pricing-table-view">
             <thead>
@@ -287,14 +294,11 @@ function createOptionElement(option, optionId, includeRadioButton = false) {
                     <th class="w-28 text-right">One-Time (NRC)</th>
                 </tr>
             </thead>
-            <tbody>
-                ${tableBodyHtml}
-            </tbody>
+            <tbody> ${tableBodyHtml} </tbody>
             ${tableFooterHtml}
         </table>
     `;
 
-    // Conditional Header (with or without radio button)
     const headerHtml = `
         <div class="view-option-header ${includeRadioButton ? '' : 'justify-between'}">
             ${includeRadioButton ? `
@@ -310,13 +314,7 @@ function createOptionElement(option, optionId, includeRadioButton = false) {
         </div>
     `;
 
-
-    optionEl.innerHTML = `
-        ${headerHtml}
-        <div class="view-option-body">
-            ${tableHtml}
-        </div>
-    `;
+    optionEl.innerHTML = ` ${headerHtml} <div class="view-option-body"> ${tableHtml} </div> `;
     return optionEl;
 }
 
@@ -342,7 +340,7 @@ async function signContract() {
     const signerName = signerNameInput.value.trim();
 
     if (!selectedOptionId || !signerName || (isUsingTypedSignature ? false : !signaturePad || signaturePad.isEmpty())) {
-        alert("Please ensure an option is selected, your name is entered, and a signature is provided (either drawn or by typing your name if the checkbox is selected).");
+        alert("Please ensure an option is selected, your name is entered, and a signature is provided.");
         return;
     }
 
@@ -371,12 +369,12 @@ async function signContract() {
             signature: signatureDataObject
         }, { merge: true });
 
-        // Update local contract data state after saving
+        // Update local state
         currentContractData.status = 'signed';
         currentContractData.selectedOptionId = selectedOptionId;
         currentContractData.signature = signatureDataObject;
 
-        // Fetch the chosen option data NOW, after saving
+        // Fetch chosen option data NOW
         if (currentContractData.selectedOptionId) {
              const optionRef = doc(db, 'contracts', currentContractId, 'options', currentContractData.selectedOptionId);
              const optionSnap = await getDoc(optionRef);
@@ -385,7 +383,6 @@ async function signContract() {
              }
         }
 
-        // Show the locked view with the updated data
         showLockedView(currentContractData);
 
     } catch (err) {
@@ -399,20 +396,17 @@ async function signContract() {
 
 // --- Show Locked View ---
 function showLockedView(contract) {
-    // Hide sections for option selection and signing
     optionsSection.classList.add('hidden');
     signatureSection.classList.add('hidden');
 
-    // Populate "Thank You" message details
     signedByName.textContent = contract.signature?.signerName || 'N/A';
     signedOnDate.textContent = contract.signature?.signedAt ? new Date(contract.signature.signedAt).toLocaleString() : 'N/A';
 
-    // Display the saved signature
     finalSignatureDisplay.innerHTML = '<h4 class="font-medium text-gray-700 mb-1">Signature Provided:</h4>';
     if (contract.signature?.signatureType === 'typed') {
         const typedSig = document.createElement('span');
         typedSig.className = 'typed-signature-font text-xl';
-        typedSig.textContent = contract.signature.signatureData || signerNameInput.value.trim() || '[Typed Name]'; // Use saved name
+        typedSig.textContent = contract.signature.signatureData || '[Typed Name]';
         finalSignatureDisplay.appendChild(typedSig);
     } else if (contract.signature?.signatureType === 'drawn' && contract.signature.signatureData) {
         const sigImage = document.createElement('img');
@@ -423,20 +417,16 @@ function showLockedView(contract) {
         finalSignatureDisplay.innerHTML += '<p class="text-sm text-gray-500">Signature data not available.</p>';
     }
 
-    // --- NEW: Display Chosen Option ---
-    chosenOptionDisplay.innerHTML = '<h3 class="text-xl font-semibold text-gray-800 mb-4">Selected Option Details:</h3>'; // Clear placeholder
+    chosenOptionDisplay.innerHTML = '<h3 class="text-xl font-semibold text-gray-800 mb-4">Selected Option Details:</h3>';
     if (chosenOptionData) {
-        // Use the helper function to create the display, but without the radio button
         const chosenOptionEl = createOptionElement(chosenOptionData, contract.selectedOptionId, false);
         chosenOptionDisplay.appendChild(chosenOptionEl);
     } else {
         chosenOptionDisplay.innerHTML += '<p class="text-gray-500">Could not load details for the selected option.</p>';
     }
-    // --- END NEW ---
 
-
-    // Show the "Thank You" state container
     thankYouState.classList.remove('hidden');
+    postSignActions.classList.remove('hidden');
 }
 
 
@@ -446,5 +436,84 @@ function showError(message) {
     loadingState.classList.add('hidden');
     contractView.classList.add('hidden');
     errorState.classList.remove('hidden');
+}
+
+// --- Post-Sign Actions ---
+
+function printContract() {
+    window.print();
+}
+
+function showEmailModal() {
+    summaryEmailInput.value = currentContractData?.customerEmail || ''; // Pre-fill
+    emailStatusMessage.textContent = '';
+    emailStatusMessage.className = 'text-sm mt-2';
+    emailConfirmationSection.classList.remove('hidden');
+}
+
+function hideEmailModal() {
+    emailConfirmationSection.classList.add('hidden');
+}
+
+// Updated Function to Send Summary Data
+async function handleSendEmail() {
+    const email = summaryEmailInput.value.trim();
+    if (!email || !/\S+@\S+\.\S+/.test(email)) {
+        emailStatusMessage.textContent = 'Please enter a valid email address.';
+        emailStatusMessage.className = 'text-sm mt-2 error';
+        return;
+    }
+
+    if (!currentContractData || !chosenOptionData) {
+         emailStatusMessage.textContent = 'Contract or option data is missing.';
+         emailStatusMessage.className = 'text-sm mt-2 error';
+         return;
+    }
+
+    confirmEmailBtn.disabled = true;
+    confirmEmailBtn.textContent = 'Sending...';
+    emailStatusMessage.textContent = 'Preparing email summary...';
+    emailStatusMessage.className = 'text-sm mt-2';
+
+    // --- Prepare Data for Cloud Function ---
+    const emailData = {
+        toEmail: email,
+        contractId: currentContractId,
+        businessName: currentContractData.businessName,
+        signerName: currentContractData.signature?.signerName,
+        signedDate: currentContractData.signature?.signedAt ? new Date(currentContractData.signature.signedAt).toLocaleString() : 'N/A',
+        optionTitle: chosenOptionData.title,
+        optionTerm: chosenOptionData.termMonths,
+        optionMRC: chosenOptionData.totalMRC.toFixed(2),
+        optionNRC: chosenOptionData.totalNRC.toFixed(2),
+        contractLink: window.location.href, // Send the current page link
+        selectedOptionId: currentContractData.selectedOptionId // Pass option ID
+    };
+
+    console.log("Data prepared for Cloud Function:", emailData);
+
+    // --- Trigger Cloud Function ---
+    try {
+        // Use the renamed function reference
+        const result = await sendSignedConfirmationEmail(emailData);
+        console.log('Cloud Function result:', result);
+
+        // Check result from Cloud Function
+        if (result.data?.success) {
+            emailStatusMessage.textContent = 'Confirmation email sent successfully!';
+            emailStatusMessage.className = 'text-sm mt-2 success';
+            setTimeout(hideEmailModal, 3000);
+        } else {
+             throw new Error(result.data?.message || 'Cloud function reported an error.');
+        }
+
+    } catch (error) {
+        console.error('Error triggering email function:', error);
+        emailStatusMessage.textContent = `Error: Could not send email. ${error.message}`;
+        emailStatusMessage.className = 'text-sm mt-2 error';
+    } finally {
+        confirmEmailBtn.disabled = false;
+        confirmEmailBtn.textContent = 'Send Email';
+    }
 }
 
