@@ -63,8 +63,8 @@
             </div>
         </div>
 
-        <!-- Contract Options -->
-        <div>
+        <!-- Contract Options (Hidden when locked) -->
+        <div id="options-section">
             <h2 class="text-2xl font-semibold text-gray-800 mb-4">Please Select an Option:</h2>
             <div id="options-view-container" class="space-y-6">
                 <!-- JS will populate options here -->
@@ -103,7 +103,7 @@
 
                     <h4 class="terms-h4">3. Installation and Scheduling</h4>
                     <h5 class="terms-h5">3.1. Installation Window</h5>
-                    <p id="dynamic-installation-schedule">Installation timelines vary based on location, required permits, and construction needs. CFN estimates a maximum installation timeframe of up to 10 weeks per location, contingent upon state permits and construction dependencies. Installation may often be completed sooner, and CFN will provide updates throughout the process. Special installations, ad hoc requests, or delays caused by the Customer's vendor may extend timelines and potentially incur additional costs.</p> 
+                    <p id="dynamic-installation-schedule">Installation timelines vary based on location, required permits, and construction needs. CFN estimates a maximum installation timeframe of up to 10 weeks per location, contingent upon state permits and construction dependencies. Installation may often be completed sooner, and CFN will provide updates throughout the process. Special installations, ad hoc requests, or delays caused by the Customer's vendor may extend timelines and potentially incur additional costs.</p> {/* Dynamic text inserted here by JS */}
                     <h5 class="terms-h5">3.2. Site Access and Readiness</h5>
                     <p>Customer shall provide CFN with all necessary site access, power availability, and environmental readiness required for installation. Customer-caused delays may extend completion dates and may incur additional costs.</p>
 
@@ -163,7 +163,7 @@
         </div>
 
 
-        <!-- Signature Section -->
+        <!-- Signature Section (Hidden when locked) -->
         <div id="signature-section" class="mt-12 pt-8 border-t">
             <h2 class="text-2xl font-semibold text-gray-800 mb-4">Agreement & Signature</h2>
 
@@ -208,14 +208,24 @@
         </div>
 
         <!-- Thank You / Locked State -->
-        <div id="thank-you-state" class="hidden mt-12 p-8 bg-green-50 border-l-4 border-green-500 rounded-md">
-            <h2 class="text-2xl font-bold text-green-800">Thank You!</h2>
-            <p class="mt-2 text-gray-700">This contract was signed by <strong id="signed-by-name"></strong> on <strong id="signed-on-date"></strong>.</p>
-            <div id="final-signature-display" class="mt-4">
-                <!-- Saved signature (typed or drawn) appears here -->
+        <div id="thank-you-state" class="hidden mt-12 pt-8 border-t">
+             <div class="p-8 bg-green-50 border-l-4 border-green-500 rounded-md">
+                <h2 class="text-2xl font-bold text-green-800">Thank You!</h2>
+                <p class="mt-2 text-gray-700">This contract was signed by <strong id="signed-by-name"></strong> on <strong id="signed-on-date"></strong>.</p>
+                <div id="final-signature-display" class="mt-4">
+                    <!-- Saved signature (typed or drawn) appears here -->
+                </div>
+                 <p class="mt-4 text-gray-600">This document is now locked. Please contact your account representative if you have any questions.</p>
             </div>
-            <p class="mt-4 text-gray-600">This document is now locked. Please contact your account representative if you have any questions.</p>
+
+            <!-- Chosen Option Details (Added) -->
+            <div id="chosen-option-display" class="mt-8 p-6 border rounded-lg shadow-sm bg-gray-50">
+                <h3 class="text-xl font-semibold text-gray-800 mb-4">Selected Option Details:</h3>
+                <!-- JS will populate this section -->
+                 <p class="text-gray-500">Loading selected option...</p>
+            </div>
         </div>
+
 
     </div>
 
