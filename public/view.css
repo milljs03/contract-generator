@@ -312,6 +312,18 @@ body {
     color: #DC2626; /* red-600 */
 }
 
+/* --- Fix Button Height in Email Confirmation --- */
+#email-confirmation-section .flex {
+    align-items: flex-end; /* Align items to the bottom, preventing stretch */
+}
+
+#confirm-email-btn,
+#cancel-email-btn {
+    height: fit-content; /* Ensure button height fits its content */
+    align-self: flex-end; /* Explicitly align buttons to the bottom */
+}
+
+
 /* --- Print Styles --- */
 @media print {
     body {

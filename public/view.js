@@ -198,11 +198,12 @@ async function loadContract() {
             detailAgentName.classList.remove('hidden');
         }
         detailServiceAddresses.innerHTML = '';
-        currentContractData.multiSiteAddresses.forEach(address => {
-            const li = document.createElement('ul');
-            li.textContent = address;
-            detailServiceAddresses.appendChild(li);
-        });
+        currentContractData.multiSiteAddresses.forEach((address, index) => {
+             detailServiceAddresses.appendChild(document.createTextNode(address));
+             if (index < currentContractData.multiSiteAddresses.length - 1) {
+                 detailServiceAddresses.appendChild(document.createElement('br'));
+             }
+         });
         if (currentContractData.installationScheduleText && dynamicInstallationScheduleLi) {
             dynamicInstallationScheduleLi.textContent = currentContractData.installationScheduleText;
         } else if (dynamicInstallationScheduleLi) {
